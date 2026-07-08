@@ -9,7 +9,6 @@ import {
   initLiveness,
   liveProgress,
   FACE_STEP_LABEL,
-  CENTER_HOLD_MS,
   type FaceStep,
   type LivenessState,
 } from "@/lib/face-liveness";
@@ -21,75 +20,6 @@ const SIZE = 260;
 const RADIUS = 118;
 const STROKE = 6;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-function drawFaceOverlay(
-  canvas: HTMLCanvasElement,
-  landmarks: { x: number; y: number }[],
-  isDone: boolean,
-) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  // Make sure canvas internal size matches CSS size
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w;
-    canvas.height = h;
-  }
-  ctx.clearRect(0, 0, w, h);
-
-  // The video is mirrored via CSS (-scale-x-100), so we must mirror drawing!
-  ctx.save();
-  ctx.translate(w, 0);
-  ctx.scale(-1, 1);
-
-  // Colors
-  const dotColor = isDone ? "rgba(16, 185, 129, 0.9)" : "rgba(0, 200, 255, 0.85)";
-  const lineColor = isDone ? "rgba(16, 185, 129, 0.5)" : "rgba(0, 180, 255, 0.5)";
-
-  ctx.strokeStyle = lineColor;
-  ctx.lineWidth = 1.5;
-  ctx.fillStyle = dotColor;
-
-  const drawPath = (indices: number[], close = false) => {
-    ctx.beginPath();
-    indices.forEach((idx, i) => {
-      const pt = landmarks[idx];
-      if (!pt) return;
-      const px = pt.x * w;
-      const py = pt.y * h;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
-    if (close) ctx.closePath();
-    ctx.stroke();
-  };
-
-  // Basic outlines: MediaPipe FaceMesh standard indices
-  // Left eye: 33, 160, 158, 133, 153, 144
-  drawPath([33, 160, 158, 133, 153, 144], true);
-  // Right eye: 263, 387, 385, 362, 380, 373
-  drawPath([263, 387, 385, 362, 380, 373], true);
-  // Lips inner: 78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95
-  drawPath(
-    [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95],
-    true,
-  );
-  // Nose bridge: 168, 6, 197, 195, 5, 4
-  drawPath([168, 6, 197, 195, 5, 4]);
-
-  // Key dots
-  const DOTS = [33, 263, 1, 61, 291, 199]; // Outer eyes, nose tip, mouth corners, chin
-  DOTS.forEach((idx) => {
-    const pt = landmarks[idx];
-    if (!pt) return;
-    ctx.beginPath();
-    ctx.arc(pt.x * w, pt.y * h, 2, 0, 2 * Math.PI);
-    ctx.fill();
-  });
-
-  ctx.restore();
-}
 
 /**
  * Municipality face-login step: a "look straight → turn left → turn right" liveness
@@ -114,13 +44,11 @@ export function FaceLivenessGate({
   const [struggling, setStruggling] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
   const rafRef = useRef<number | null>(null);
   const stateRef = useRef<LivenessState>(initLiveness());
   const lastVideoTimeRef = useRef(-1);
-  const lastTimeRef = useRef(0);
   const doneRef = useRef(false);
 
   const cleanup = useCallback(() => {
@@ -173,20 +101,11 @@ export function FaceLivenessGate({
           setFaceVisible(true);
           const yaw = estimateYaw(landmarks);
           if (yaw != null) {
-            const now = performance.now();
-            const dtMs = lastTimeRef.current > 0 ? now - lastTimeRef.current : 16;
-            lastTimeRef.current = now;
-
             const prev = stateRef.current;
-            const next = advanceLiveness(prev, yaw, dtMs);
+            const next = advanceLiveness(prev, yaw);
             stateRef.current = next;
             setStep(next.step);
             setProgress(liveProgress(next, yaw));
-
-            if (canvasRef.current) {
-              drawFaceOverlay(canvasRef.current, landmarks, next.step === "done");
-            }
-
             if (next.step === "done" && prev.step !== "done") {
               finish();
               return;
@@ -194,11 +113,6 @@ export function FaceLivenessGate({
           }
         } else {
           setFaceVisible(false);
-          lastTimeRef.current = 0;
-          if (canvasRef.current) {
-            const ctx = canvasRef.current.getContext("2d");
-            if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          }
         }
       }
       rafRef.current = requestAnimationFrame(loop);
@@ -283,11 +197,6 @@ export function FaceLivenessGate({
 
   const isDone = phase === "success";
   const dashoffset = CIRCUMFERENCE * (1 - progress);
-  const holdPercent = Math.min(
-    100,
-    Math.floor((stateRef.current.centerHeldMs / CENTER_HOLD_MS) * 100),
-  );
-
   const instruction =
     phase === "error"
       ? "Face check unavailable"
@@ -361,40 +270,9 @@ export function FaceLivenessGate({
                   strokeLinecap="round"
                   strokeDasharray={CIRCUMFERENCE}
                   strokeDashoffset={dashoffset}
-                  style={{ transition: "stroke-dashoffset 0.08s linear, stroke 0.3s ease" }}
+                  style={{ transition: "stroke-dashoffset 0.15s ease-out, stroke 0.3s ease" }}
                 />
               </svg>
-
-              {/* Centering Guide Overlay */}
-              {step === "centering" && !isDone && phase === "ready" && (
-                <div className="absolute inset-0 grid place-items-center z-20 pointer-events-none transition-opacity">
-                  <div className="relative flex flex-col items-center">
-                    <svg
-                      width="140"
-                      height="180"
-                      viewBox="0 0 140 180"
-                      className="overflow-visible"
-                    >
-                      <ellipse
-                        cx="70"
-                        cy="90"
-                        rx="65"
-                        ry="85"
-                        fill="none"
-                        stroke={faceVisible ? "rgba(16, 185, 129, 0.6)" : "rgba(239, 68, 68, 0.4)"}
-                        strokeWidth="3"
-                        strokeDasharray={faceVisible ? "none" : "8 8"}
-                        className={cn("transition-all duration-300", faceVisible && "scale-[1.02]")}
-                      />
-                    </svg>
-                    {faceVisible && (
-                      <div className="absolute -bottom-8 text-xs font-bold text-emerald-500 bg-white/90 px-2 py-0.5 rounded shadow-sm">
-                        {holdPercent}%
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Circular camera */}
               <div className="absolute inset-0 grid place-items-center">
@@ -411,14 +289,9 @@ export function FaceLivenessGate({
                     playsInline
                     muted
                     className={cn(
-                      "absolute inset-0 w-full h-full object-cover -scale-x-100",
+                      "w-full h-full object-cover -scale-x-100",
                       phase === "loading" && "opacity-0",
                     )}
-                  />
-                  {/* Landmark overlay canvas */}
-                  <canvas
-                    ref={canvasRef}
-                    className="absolute inset-0 w-full h-full z-10 pointer-events-none"
                   />
                 </div>
               </div>
