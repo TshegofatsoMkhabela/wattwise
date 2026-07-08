@@ -130,9 +130,9 @@ async function startConversation(signal: AbortSignal): Promise<StartResponse> {
   if (resolvedTokenUrl) {
     const res = await fetch(resolvedTokenUrl, { method: "GET", signal });
     if (!res.ok) throw new Error(`Token endpoint returned ${res.status}`);
-    const data = (await res.json()) as { token?: string; conversationId?: string };
+    const data = (await res.json()) as { token?: string };
     if (!data.token) throw new Error("Token endpoint did not return a token");
-    return openConversation(data.token, signal, data.conversationId);
+    return openConversation(data.token, signal);
   }
 
   // Path 2: use the raw secret to open a conversation.
