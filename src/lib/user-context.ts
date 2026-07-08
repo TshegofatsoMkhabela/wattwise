@@ -1,5 +1,5 @@
-import { useAuthStore } from "@/store/authStore";
-import type { Role } from "@/types";
+import { useAuthStore } from "../store/authStore";
+import type { Role } from "../types";
 
 export interface UserIdentity {
   role: Role;

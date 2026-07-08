@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { formatAgentMessageContext, getAgentContext } from "./user-context";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthStore } from "../store/authStore";
 
 describe("user-context", () => {
   afterEach(() => {
