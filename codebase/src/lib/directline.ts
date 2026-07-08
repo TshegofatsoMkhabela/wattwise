@@ -36,7 +36,7 @@ const BACKEND_TOKEN_URL = apiUrl("/api/directline/token");
 const SECRET = (import.meta.env.VITE_DIRECTLINE_SECRET ?? "").trim();
 const DOMAIN = (import.meta.env.VITE_DIRECTLINE_DOMAIN ?? "").trim() || DEFAULT_DOMAIN;
 
-export const isDirectLineConfigured = Boolean(TOKEN_URL || SECRET);
+export const isDirectLineConfigured = Boolean(TOKEN_URL || BACKEND_TOKEN_URL || SECRET);
 
 export type AgentStatus = "unconfigured" | "connecting" | "online" | "error";
 
