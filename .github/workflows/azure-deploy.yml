@@ -88,11 +88,21 @@ jobs:
 
       - name: Update Container App
         run: |
-          az containerapp update \
-            --name "$CONTAINER_APP_NAME" \
-            --resource-group "$RESOURCE_GROUP" \
-            --image "$IMAGE" \
-            --set-env-vars APP_ENV=production DIRECTLINE_SECRET=secretref:directline-secret
+          for attempt in 1 2 3 4 5; do
+            if az containerapp update \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --image "$IMAGE" \
+              --set-env-vars APP_ENV=production DIRECTLINE_SECRET=secretref:directline-secret; then
+              exit 0
+            fi
+
+            echo "Container App update is not ready yet; retrying in 30 seconds (attempt ${attempt}/5)."
+            sleep 30
+          done
+
+          echo "Container App update failed after retries."
+          exit 1
 
       - name: Read backend URL
         id: api
