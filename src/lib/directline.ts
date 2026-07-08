@@ -124,7 +124,9 @@ export function isResponseTimedOut(elapsedMs: number): boolean {
  */
 async function startConversation(signal: AbortSignal): Promise<StartResponse> {
   // Path 1: token endpoint returns a token we then exchange for a conversation.
-  const resolvedTokenUrl = TOKEN_URL || BACKEND_TOKEN_URL;
+  // If no explicit TOKEN_URL is set, but a SECRET is, skip the backend fallback
+  // so we can use Path 2 directly (useful for frontend-only dev environments).
+  const resolvedTokenUrl = TOKEN_URL || (!SECRET ? BACKEND_TOKEN_URL : "");
   if (resolvedTokenUrl) {
     const res = await fetch(resolvedTokenUrl, { method: "GET", signal });
     if (!res.ok) throw new Error(`Token endpoint returned ${res.status}`);
