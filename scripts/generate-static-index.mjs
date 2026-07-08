@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const clientDir = "dist/client";
-const serverBundle = "../dist/server/server.js";
+const clientDir = process.env.CLIENT_DIR ?? "dist/client";
+const serverBundle = process.env.SERVER_BUNDLE ?? "../dist/server/server.js";
 
 const routes = [
   "/",
