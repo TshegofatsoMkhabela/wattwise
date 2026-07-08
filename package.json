@@ -7,7 +7,7 @@
     "dev": "vite dev --config codebase/vite.config.ts",
     "build": "vite build --config codebase/vite.config.ts",
     "build:dev": "vite build --config codebase/vite.config.ts --mode development",
-    "build:static": "vite build --config codebase/vite.config.ts && CLIENT_DIR=codebase/dist/client SERVER_BUNDLE=../codebase/dist/server/server.js node scripts/generate-static-index.mjs",
+    "build:static": "vite build --config codebase/vite.config.ts && CLIENT_DIR=codebase/dist/client SERVER_BUNDLE=../codebase/dist/server/server.js node scripts/generate-static-index.mjs && node scripts/sync-root-dist.mjs",
     "preview": "vite preview --config codebase/vite.config.ts",
     "test": "vitest run",
     "test:unit": "vitest run --config codebase/vite.config.ts",
