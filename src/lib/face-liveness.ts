@@ -38,7 +38,7 @@ export function estimateYaw(landmarks: readonly Landmark[]): number | null {
   return (nose.x - mid) / halfSpan;
 }
 
-export type FaceStep = "center" | "turn1" | "turn2" | "done";
+export type FaceStep = "centering" | "center" | "turn1" | "turn2" | "done";
 
 /** Below this magnitude the face counts as looking forward. */
 export const YAW_CENTER_MAX = 0.35;
@@ -49,6 +49,7 @@ export interface LivenessState {
   step: FaceStep;
   /** Sign of the first turn, so the second step can require the opposite direction. */
   firstTurnSign: -1 | 0 | 1;
+  centerHeldMs: number;
 }
 
 export interface LivenessOptions {
@@ -56,8 +57,10 @@ export interface LivenessOptions {
   turnMin?: number;
 }
 
+export const CENTER_HOLD_MS = 600;
+
 export function initLiveness(): LivenessState {
-  return { step: "center", firstTurnSign: 0 };
+  return { step: "centering", firstTurnSign: 0, centerHeldMs: 0 };
 }
 
 /**
@@ -68,6 +71,7 @@ export function initLiveness(): LivenessState {
 export function advanceLiveness(
   state: LivenessState,
   yaw: number,
+  dtMs: number,
   options: LivenessOptions = {},
 ): LivenessState {
   const centerMax = options.centerMax ?? YAW_CENTER_MAX;
@@ -76,10 +80,19 @@ export function advanceLiveness(
   const sign: -1 | 1 = yaw < 0 ? -1 : 1;
 
   switch (state.step) {
+    case "centering":
+      if (magnitude <= centerMax) {
+        const nextMs = state.centerHeldMs + dtMs;
+        if (nextMs >= CENTER_HOLD_MS) {
+          return { ...state, step: "center", centerHeldMs: nextMs };
+        }
+        return { ...state, centerHeldMs: nextMs };
+      }
+      return { ...state, centerHeldMs: 0 };
     case "center":
       return magnitude <= centerMax ? { ...state, step: "turn1" } : state;
     case "turn1":
-      return magnitude >= turnMin ? { step: "turn2", firstTurnSign: sign } : state;
+      return magnitude >= turnMin ? { ...state, step: "turn2", firstTurnSign: sign } : state;
     case "turn2":
       return state.firstTurnSign !== 0 && sign === -state.firstTurnSign && magnitude >= turnMin
         ? { ...state, step: "done" }
@@ -89,15 +102,16 @@ export function advanceLiveness(
   }
 }
 
-/** Fraction of the challenge completed at the *start* of a step (0, ⅓, ⅔, 1). */
 export function stepProgress(step: FaceStep): number {
   switch (step) {
-    case "center":
+    case "centering":
       return 0;
+    case "center":
+      return 0.15;
     case "turn1":
-      return 1 / 3;
+      return 0.33;
     case "turn2":
-      return 2 / 3;
+      return 0.67;
     case "done":
       return 1;
   }
@@ -116,19 +130,25 @@ export function liveProgress(
   const turnMin = options.turnMin ?? YAW_TURN_MIN;
   const base = stepProgress(state.step);
 
+  if (state.step === "centering") {
+    return Math.min(0.15 * (state.centerHeldMs / CENTER_HOLD_MS), 0.15);
+  }
+  if (state.step === "center") {
+    return 0.15; // Jumps from 0.15 to 0.33 in one frame if center confirmed
+  }
   if (state.step === "turn1") {
-    return Math.min(base + Math.min(Math.abs(yaw) / turnMin, 1) / 3, 1);
+    return Math.min(base + Math.min(Math.abs(yaw) / turnMin, 1) * 0.34, 0.67);
   }
   if (state.step === "turn2") {
     const correctDirection = state.firstTurnSign !== 0 && Math.sign(yaw) === -state.firstTurnSign;
-    const intra = correctDirection ? Math.min(Math.abs(yaw) / turnMin, 1) / 3 : 0;
+    const intra = correctDirection ? Math.min(Math.abs(yaw) / turnMin, 1) * 0.33 : 0;
     return Math.min(base + intra, 1);
   }
   return base;
 }
 
-/** Human-facing instruction for each step. */
 export const FACE_STEP_LABEL: Record<FaceStep, string> = {
+  centering: "Center your face in the circle",
   center: "Look straight at the screen",
   turn1: "Slowly turn your head left",
   turn2: "Now turn your head right",
