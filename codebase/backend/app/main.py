@@ -6,6 +6,12 @@ from app.api.router import api_router
 from app.database import init_db, SessionLocal
 from app.db_seed import seed_database
 
+extra_origins = [
+    origin.strip()
+    for origin in settings.EXTRA_CORS_ORIGINS.split(",")
+    if origin.strip()
+]
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="Backend API for WattWise smart meter monitoring demo.",
@@ -18,6 +24,7 @@ app.add_middleware(
         settings.FRONTEND_ORIGIN,
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        *extra_origins,
     ],
     allow_credentials=True,
     allow_methods=["*"],

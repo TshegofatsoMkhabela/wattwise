@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiUrl } from "./api";
 
 /**
  * Minimal, dependency-free Direct Line 3.0 client for talking to a
@@ -8,9 +9,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * In Copilot Studio: Settings → Channels → open your agent's web/Direct Line
  * channel and grab EITHER:
  *
- *   1. A "token endpoint" URL (recommended, safe for the browser). It returns
- *      a short-lived token and never exposes the secret. Put it in:
- *          VITE_DIRECTLINE_TOKEN_URL=https://.../directline/token
+ *   1. A backend token endpoint URL (recommended, safe for the browser). It
+ *      returns a short-lived token and never exposes the secret. Defaults to:
+ *          /api/directline/token
+ *      Override only if your backend is on another host:
+ *          VITE_DIRECTLINE_TOKEN_URL=https://.../api/directline/token
  *
  *   2. The raw Direct Line secret (simple, demo-only — it ships in the client
  *      bundle, so don't use it in production). Put it in:
@@ -26,7 +29,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const DEFAULT_DOMAIN = "https://directline.botframework.com/v3/directline";
 
-const TOKEN_URL = (import.meta.env.VITE_DIRECTLINE_TOKEN_URL ?? "").trim();
+const TOKEN_URL =
+  (import.meta.env.VITE_DIRECTLINE_TOKEN_URL ?? "").trim() || apiUrl("/api/directline/token");
 const SECRET = (import.meta.env.VITE_DIRECTLINE_SECRET ?? "").trim();
 const DOMAIN = (import.meta.env.VITE_DIRECTLINE_DOMAIN ?? "").trim() || DEFAULT_DOMAIN;
 

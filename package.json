@@ -8,9 +8,12 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:unit": "vitest run src",
+    "test:e2e": "playwright test",
+    "lint:demo": "eslint src/lib/api.ts src/lib/directline.ts src/lib/high-usage-alert.ts src/lib/high-usage-alert.test.ts src/routes/dashboard.tsx src/store/liveDataStore.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -72,6 +75,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

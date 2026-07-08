@@ -1,0 +1,53 @@
+name: Azure Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      container_revision:
+        description: "Container App revision name to activate"
+        required: true
+      deactivate_latest:
+        description: "Deactivate the current latest revision after activation"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP || 'rg-wattwise-demo' }}
+  CONTAINER_APP_NAME: ${{ vars.AZURE_CONTAINER_APP_NAME || 'wattwise-demo-api' }}
+
+jobs:
+  rollback-container-app:
+    name: Activate previous backend revision
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Activate requested revision
+        run: |
+          az containerapp revision activate \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --revision "${{ github.event.inputs.container_revision }}"
+
+      - name: Optionally deactivate latest revision
+        if: ${{ github.event.inputs.deactivate_latest == 'true' }}
+        run: |
+          LATEST=$(az containerapp revision list \
+            --name "$CONTAINER_APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --query "[?properties.active].name | [-1]" \
+            --output tsv)
+          if [ "$LATEST" != "${{ github.event.inputs.container_revision }}" ]; then
+            az containerapp revision deactivate \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "$RESOURCE_GROUP" \
+              --revision "$LATEST"
+          fi

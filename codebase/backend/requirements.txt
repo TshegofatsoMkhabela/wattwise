@@ -6,3 +6,5 @@ requests
 pyserial
 SQLAlchemy
 psycopg2-binary
+pytest
+httpx
