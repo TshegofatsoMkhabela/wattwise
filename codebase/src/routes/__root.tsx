@@ -80,16 +80,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "WattWise" },
-      { name: "description", content: "Smart electricity monitoring and civic reporting for South African households and municipalities." },
+      {
+        name: "description",
+        content:
+          "Smart electricity monitoring and civic reporting for South African households and municipalities.",
+      },
       { property: "og:title", content: "WattWise" },
-      { property: "og:description", content: "Smart electricity monitoring and civic reporting for South African households and municipalities." },
+      {
+        property: "og:description",
+        content:
+          "Smart electricity monitoring and civic reporting for South African households and municipalities.",
+      },
       { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -132,8 +143,7 @@ function RootComponent() {
               error: "!border-l-4 !border-l-red-500",
               info: "!border-l-4 !border-l-[#005EB8]",
               warning: "!border-l-4 !border-l-amber-500",
-              closeButton:
-                "!bg-white !border-slate-200 !text-slate-400 hover:!text-slate-700",
+              closeButton: "!bg-white !border-slate-200 !text-slate-400 hover:!text-slate-700",
             },
           }}
         />

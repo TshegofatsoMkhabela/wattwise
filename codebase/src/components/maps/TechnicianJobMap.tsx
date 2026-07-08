@@ -20,19 +20,19 @@ function FitMapToJobs({ jobs }: { jobs: LocatedJob[] }) {
     const timer = setTimeout(() => {
       const latitudes = jobs.map(({ meter }) => meter.lat);
       const longitudes = jobs.map(({ meter }) => meter.lng);
-      
+
       const bounds = new window.google.maps.LatLngBounds(
         { lat: Math.min(...latitudes), lng: Math.min(...longitudes) }, // SW
-        { lat: Math.max(...latitudes), lng: Math.max(...longitudes) }  // NE
+        { lat: Math.max(...latitudes), lng: Math.max(...longitudes) }, // NE
       );
-      
+
       // 1. Smoothly pan to the center of the pins
       map.panTo(bounds.getCenter());
-      
+
       // 2. Step the zoom smoothly to simulate a fly-in effect
       let currentZoom = map.getZoom() || 11;
       const targetZoom = 15;
-      
+
       const zoomInterval = setInterval(() => {
         if (currentZoom >= targetZoom) {
           clearInterval(zoomInterval);
@@ -43,7 +43,6 @@ function FitMapToJobs({ jobs }: { jobs: LocatedJob[] }) {
         currentZoom += 1;
         map.setZoom(currentZoom);
       }, 250);
-      
     }, 800);
 
     return () => clearTimeout(timer);

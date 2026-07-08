@@ -26,9 +26,9 @@ const ranges = [
 
 function AlertsCentre() {
   const alerts = useAlerts((s) => s.alerts);
-  const [filter, setFilter] = useState<typeof filters[number]>("all");
+  const [filter, setFilter] = useState<(typeof filters)[number]>("all");
   const [range, setRange] = useState("7d");
-  const [dispatchAlert, setDispatchAlert] = useState<typeof alerts[number] | null>(null);
+  const [dispatchAlert, setDispatchAlert] = useState<(typeof alerts)[number] | null>(null);
 
   const filtered = alerts.filter((a) => {
     if (filter === "all") return true;
@@ -43,15 +43,30 @@ function AlertsCentre() {
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex gap-1.5">
             {filters.map((f) => (
-              <button key={f} onClick={() => setFilter(f)}
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-colors ${
-                  filter === f ? "bg-[#005EB8] text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                }`}>{f}</button>
+                  filter === f
+                    ? "bg-[#005EB8] text-white"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}
+              >
+                {f}
+              </button>
             ))}
           </div>
           <div className="ml-auto">
-            <select value={range} onChange={(e)=>setRange(e.target.value)} className="border border-input rounded-lg px-3 py-1.5 text-xs bg-background">
-              {ranges.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value)}
+              className="border border-input rounded-lg px-3 py-1.5 text-xs bg-background"
+            >
+              {ranges.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -59,15 +74,32 @@ function AlertsCentre() {
 
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <Card><div className="text-center py-12 text-sm text-muted-foreground">
-            <div className="text-4xl mb-2">✓</div>
-            No alerts match this filter. The network is calm.
-          </div></Card>
+          <Card>
+            <div className="text-center py-12 text-sm text-muted-foreground">
+              <div className="text-4xl mb-2">✓</div>
+              No alerts match this filter. The network is calm.
+            </div>
+          </Card>
         )}
         {filtered.map((a) => {
-          const Icon = a.severity === "critical" ? ShieldAlert : a.severity === "warning" ? AlertTriangle : CheckCircle;
-          const border = a.severity === "critical" ? "border-l-red-500" : a.severity === "warning" ? "border-l-amber-400" : "border-l-[#005EB8]";
-          const color = a.severity === "critical" ? "text-red-500" : a.severity === "warning" ? "text-amber-600" : "text-[#005EB8]";
+          const Icon =
+            a.severity === "critical"
+              ? ShieldAlert
+              : a.severity === "warning"
+                ? AlertTriangle
+                : CheckCircle;
+          const border =
+            a.severity === "critical"
+              ? "border-l-red-500"
+              : a.severity === "warning"
+                ? "border-l-amber-400"
+                : "border-l-[#005EB8]";
+          const color =
+            a.severity === "critical"
+              ? "text-red-500"
+              : a.severity === "warning"
+                ? "text-amber-600"
+                : "text-[#005EB8]";
           return (
             <Card key={a.id} className={`border-l-4 ${border}`}>
               <div className="flex items-start gap-4">
@@ -83,11 +115,24 @@ function AlertsCentre() {
                   <div className="mt-2 text-[11px] text-muted-foreground flex flex-wrap gap-3 items-center">
                     <span>{formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}</span>
                     {a.assignedTo ? (
-                      <span>Assigned: <strong>{a.assignedTo}</strong></span>
+                      <span>
+                        Assigned: <strong>{a.assignedTo}</strong>
+                      </span>
                     ) : (
-                      <button onClick={() => setDispatchAlert(a)} className="text-amber-600 font-semibold hover:underline">Unassigned — dispatch now</button>
+                      <button
+                        onClick={() => setDispatchAlert(a)}
+                        className="text-amber-600 font-semibold hover:underline"
+                      >
+                        Unassigned — dispatch now
+                      </button>
                     )}
-                    <Link to="/meter/$meterId" params={{ meterId: a.meterId }} className="text-[#005EB8] hover:underline">View meter →</Link>
+                    <Link
+                      to="/meter/$meterId"
+                      params={{ meterId: a.meterId }}
+                      className="text-[#005EB8] hover:underline"
+                    >
+                      View meter →
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -97,9 +142,14 @@ function AlertsCentre() {
       </div>
 
       {dispatchAlert && (
-        <DispatchModal open onClose={() => setDispatchAlert(null)}
-          meterId={dispatchAlert.meterId} address={dispatchAlert.address}
-          alertId={dispatchAlert.id} summary={dispatchAlert.description} />
+        <DispatchModal
+          open
+          onClose={() => setDispatchAlert(null)}
+          meterId={dispatchAlert.meterId}
+          address={dispatchAlert.address}
+          alertId={dispatchAlert.id}
+          summary={dispatchAlert.description}
+        />
       )}
     </div>
   );

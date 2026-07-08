@@ -1,9 +1,27 @@
 import type { Technician, Job } from "@/types";
 
 export const technicians: Technician[] = [
-  { id: "TEC-001", name: "Sipho Maluleke", phone: "+27 82 555 0101", activeJobs: 3, resolvedToday: 2 },
-  { id: "TEC-002", name: "Lerato Khumalo", phone: "+27 82 555 0102", activeJobs: 2, resolvedToday: 4 },
-  { id: "TEC-003", name: "Andile Ncube", phone: "+27 82 555 0103", activeJobs: 1, resolvedToday: 1 },
+  {
+    id: "TEC-001",
+    name: "Sipho Maluleke",
+    phone: "+27 82 555 0101",
+    activeJobs: 3,
+    resolvedToday: 2,
+  },
+  {
+    id: "TEC-002",
+    name: "Lerato Khumalo",
+    phone: "+27 82 555 0102",
+    activeJobs: 2,
+    resolvedToday: 4,
+  },
+  {
+    id: "TEC-003",
+    name: "Andile Ncube",
+    phone: "+27 82 555 0103",
+    activeJobs: 1,
+    resolvedToday: 1,
+  },
 ];
 
 export const seedJobs: Job[] = [

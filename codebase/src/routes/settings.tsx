@@ -22,18 +22,22 @@ const tabs = [
 ] as const;
 
 function SettingsPage() {
-  const [tab, setTab] = useState<typeof tabs[number]["id"]>("account");
+  const [tab, setTab] = useState<(typeof tabs)[number]["id"]>("account");
   return (
     <div className="max-w-3xl">
       <div className="flex gap-1 border-b border-slate-200 mb-6">
         {tabs.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px inline-flex items-center gap-2 transition-colors ${
               tab === t.id
                 ? "border-[#005EB8] text-[#005EB8]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}>
-            <t.Icon className="w-4 h-4" />{t.label}
+            }`}
+          >
+            <t.Icon className="w-4 h-4" />
+            {t.label}
           </button>
         ))}
       </div>
@@ -53,9 +57,15 @@ function AccountTab() {
       <div className="space-y-4">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-[#EBF5FF] text-[#005EB8] grid place-items-center text-xl font-bold border-2 border-[#005EB8]/20">
-            {user?.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
+            {user?.name
+              .split(" ")
+              .map((n) => n[0])
+              .slice(0, 2)
+              .join("")}
           </div>
-          <button className="text-xs text-[#005EB8] hover:underline font-medium">Upload photo</button>
+          <button className="text-xs text-[#005EB8] hover:underline font-medium">
+            Upload photo
+          </button>
         </div>
         <Field label="Full name" defaultValue={user?.name} />
         <Field label="Email" defaultValue={user?.email} type="email" />
@@ -85,14 +95,20 @@ function HardwareTab() {
           <Field label="COM port" defaultValue="COM3" />
           <div>
             <Label>Baud rate</Label>
-            <select defaultValue="9600" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30">
-              {[2400, 4800, 9600, 19200, 38400, 57600, 115200].map(b => <option key={b}>{b}</option>)}
+            <select
+              defaultValue="9600"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30"
+            >
+              {[2400, 4800, 9600, 19200, 38400, 57600, 115200].map((b) => (
+                <option key={b}>{b}</option>
+              ))}
             </select>
           </div>
         </div>
         <button
           onClick={() => toast.success("Serial bridge connected · NX-Gateway v2.1")}
-          className="text-xs border border-[#005EB8]/30 text-[#005EB8] px-3 py-1.5 rounded-lg hover:bg-[#EBF5FF] transition-colors font-medium">
+          className="text-xs border border-[#005EB8]/30 text-[#005EB8] px-3 py-1.5 rounded-lg hover:bg-[#EBF5FF] transition-colors font-medium"
+        >
           Test connection
         </button>
 
@@ -101,13 +117,20 @@ function HardwareTab() {
           <div>
             <Label>Deviation threshold ({threshold}%)</Label>
             <input
-              type="range" min={10} max={100} value={threshold}
+              type="range"
+              min={10}
+              max={100}
+              value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))}
-              className="w-full accent-[#005EB8]" />
+              className="w-full accent-[#005EB8]"
+            />
           </div>
           <div className="mt-3">
             <Label>Sample interval</Label>
-            <select defaultValue="1000" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30">
+            <select
+              defaultValue="1000"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30"
+            >
               <option value="500">500 ms</option>
               <option value="1000">1 s</option>
               <option value="2000">2 s</option>
@@ -120,7 +143,9 @@ function HardwareTab() {
           <Field label="EskomSePush API key" placeholder="esp_xxxxxxxxxxxx" type="password" />
         </div>
 
-        <SaveButton onClick={() => toast.success("Hardware settings saved")}>Save hardware settings</SaveButton>
+        <SaveButton onClick={() => toast.success("Hardware settings saved")}>
+          Save hardware settings
+        </SaveButton>
       </div>
     </Card>
   );
@@ -141,13 +166,18 @@ function NotificationsTab() {
         )}
         <div>
           <Label>Notification frequency</Label>
-          <select defaultValue="immediately" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30">
+          <select
+            defaultValue="immediately"
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30"
+          >
             <option value="immediately">Immediately</option>
             <option value="15min">Every 15 minutes</option>
             <option value="hourly">Hourly digest</option>
           </select>
         </div>
-        <SaveButton onClick={() => toast.success("Notification preferences saved")}>Save preferences</SaveButton>
+        <SaveButton onClick={() => toast.success("Notification preferences saved")}>
+          Save preferences
+        </SaveButton>
       </div>
     </Card>
   );
@@ -162,7 +192,10 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Field({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+function Field({
+  label,
+  ...props
+}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
       <Label>{label}</Label>
@@ -177,10 +210,17 @@ function Field({ label, ...props }: { label: string } & React.InputHTMLAttribute
 function Toggle({ label, defaultChecked }: { label: string; defaultChecked?: boolean }) {
   const [on, setOn] = useState(!!defaultChecked);
   return (
-    <button onClick={() => setOn(!on)} className="flex items-center justify-between w-full text-left text-sm text-slate-700">
+    <button
+      onClick={() => setOn(!on)}
+      className="flex items-center justify-between w-full text-left text-sm text-slate-700"
+    >
       <span>{label}</span>
-      <span className={`w-10 h-5 rounded-full p-0.5 transition-colors flex-shrink-0 ml-4 ${on ? "bg-[#005EB8]" : "bg-slate-200"}`}>
-        <span className={`block w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-5" : ""}`} />
+      <span
+        className={`w-10 h-5 rounded-full p-0.5 transition-colors flex-shrink-0 ml-4 ${on ? "bg-[#005EB8]" : "bg-slate-200"}`}
+      >
+        <span
+          className={`block w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-5" : ""}`}
+        />
       </span>
     </button>
   );

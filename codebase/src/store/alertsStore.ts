@@ -18,7 +18,7 @@ export const useAlerts = create<AlertsState>((set) => ({
   assign: (alertId, name, jobId) =>
     set((s) => ({
       alerts: s.alerts.map((a) =>
-        a.id === alertId ? { ...a, assignedTo: name, status: "in_progress" } : a
+        a.id === alertId ? { ...a, assignedTo: name, status: "in_progress" } : a,
       ),
       jobs: [
         ...s.jobs,
@@ -43,7 +43,7 @@ export const useAlerts = create<AlertsState>((set) => ({
               resolvedAt: status === "resolved" ? new Date().toISOString() : j.resolvedAt,
               resolutionNote: note ?? j.resolutionNote,
             }
-          : j
+          : j,
       ),
     })),
 }));

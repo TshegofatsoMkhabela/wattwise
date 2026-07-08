@@ -16,7 +16,12 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: {
             id: "U-001",
-            name: role === "consumer" ? "Casious Mookamedi" : role === "municipality" ? "Thandi Mokoena (Ops)" : "Sipho Maluleke",
+            name:
+              role === "consumer"
+                ? "Casious Mookamedi"
+                : role === "municipality"
+                  ? "Thandi Mokoena (Ops)"
+                  : "Sipho Maluleke",
             email,
             role,
             meterId: role === "consumer" ? "NXM-001-TZN" : undefined,
@@ -24,6 +29,6 @@ export const useAuthStore = create<AuthState>()(
         }),
       logout: () => set({ user: null }),
     }),
-    { name: "nexmotion-auth" }
-  )
+    { name: "nexmotion-auth" },
+  ),
 );

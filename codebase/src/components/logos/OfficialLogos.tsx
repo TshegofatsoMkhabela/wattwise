@@ -31,7 +31,10 @@ export function EskomLogo({ className }: { className?: string }) {
 
 export function GautengLogo({ className }: { className?: string }) {
   return (
-    <div className={`flex items-center gap-2.5 ${className ?? ""}`} aria-label="Gauteng Provincial Government, Republic of South Africa">
+    <div
+      className={`flex items-center gap-2.5 ${className ?? ""}`}
+      aria-label="Gauteng Provincial Government, Republic of South Africa"
+    >
       {/* Simplified shield badge */}
       <svg width="34" height="44" viewBox="0 0 34 44" fill="none" aria-hidden="true">
         {/* Shield body */}

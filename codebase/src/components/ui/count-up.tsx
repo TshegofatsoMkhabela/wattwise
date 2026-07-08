@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 
-export function CountUp({ value, decimals = 0, className }: { value: number; decimals?: number; className?: string }) {
+export function CountUp({
+  value,
+  decimals = 0,
+  className,
+}: {
+  value: number;
+  decimals?: number;
+  className?: string;
+}) {
   const [display, setDisplay] = useState(value);
   useEffect(() => {
     const start = display;
@@ -19,5 +27,12 @@ export function CountUp({ value, decimals = 0, className }: { value: number; dec
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
-  return <span className={className}>{display.toLocaleString("en-ZA", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>;
+  return (
+    <span className={className}>
+      {display.toLocaleString("en-ZA", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      })}
+    </span>
+  );
 }

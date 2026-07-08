@@ -1,6 +1,16 @@
 import { createFileRoute, Navigate, Link } from "@tanstack/react-router";
 import { useAuthStore } from "@/store/authStore";
-import { Zap, Shield, Eye, TrendingDown, ArrowRight, CheckCircle2, Phone, BarChart3, ChevronRight } from "lucide-react";
+import {
+  Zap,
+  Shield,
+  Eye,
+  TrendingDown,
+  ArrowRight,
+  CheckCircle2,
+  Phone,
+  BarChart3,
+  ChevronRight,
+} from "lucide-react";
 import heroBg from "@/assets/hero-bg.png";
 import partner1 from "@/assets/partner1.png";
 import partner2 from "@/assets/partner2.png";
@@ -15,7 +25,11 @@ function LandingOrRedirect() {
   const user = useAuthStore((s) => s.user);
   if (user) {
     const target =
-      user.role === "consumer" ? "/dashboard" : user.role === "municipality" ? "/municipality" : "/technician";
+      user.role === "consumer"
+        ? "/dashboard"
+        : user.role === "municipality"
+          ? "/municipality"
+          : "/technician";
     return <Navigate to={target} />;
   }
   return <LandingPage />;
@@ -51,8 +65,12 @@ function Navbar() {
           <span className="font-bold text-slate-900 tracking-tight">WattWise</span>
         </div>
         <nav className="hidden sm:flex items-center gap-6 text-sm text-slate-600">
-          <a href="#how-it-works" className="hover:text-gov-blue transition-colors">How it works</a>
-          <a href="#roles" className="hover:text-gov-blue transition-colors">Who it's for</a>
+          <a href="#how-it-works" className="hover:text-gov-blue transition-colors">
+            How it works
+          </a>
+          <a href="#roles" className="hover:text-gov-blue transition-colors">
+            Who it's for
+          </a>
         </nav>
         <Link
           to="/login"
@@ -91,12 +109,15 @@ function Hero() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-28 lg:py-32">
         <div className="max-w-3xl">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.08] tracking-tight">
-            Powering<br />Accountability.<br />
+            Powering
+            <br />
+            Accountability.
+            <br />
             <span className="text-white/80">Every Rand. Every Household.</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-white/75 leading-relaxed max-w-xl">
-            Real-time electricity monitoring, tamper detection, and load-shedding
-            awareness — built for Gauteng's households, municipalities, and field technicians.
+            Real-time electricity monitoring, tamper detection, and load-shedding awareness — built
+            for Gauteng's households, municipalities, and field technicians.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -137,8 +158,10 @@ function Partners() {
       <div
         className="relative"
         style={{
-          maskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+          maskImage:
+            "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
         }}
       >
         {/* No px-8 — padding was the source of the gap at the loop seam */}
@@ -175,7 +198,9 @@ function Stats() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
           {items.map(({ value, label }) => (
             <div key={label} className="text-center">
-              <div className="text-3xl md:text-4xl font-extrabold text-gov-blue tabular-nums">{value}</div>
+              <div className="text-3xl md:text-4xl font-extrabold text-gov-blue tabular-nums">
+                {value}
+              </div>
               <div className="mt-1.5 text-sm text-slate-500">{label}</div>
             </div>
           ))}
@@ -208,14 +233,19 @@ function Problems() {
     <section className="py-16 md:py-20 bg-slate-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">South Africa's energy challenges — solved</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">
+            South Africa's energy challenges — solved
+          </h2>
           <p className="mt-3 text-slate-500 max-w-xl mx-auto">
             WattWise was built specifically for the realities of the South African grid.
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {issues.map(({ Icon, title, body }) => (
-            <div key={title} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div
+              key={title}
+              className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+            >
               <div className="w-10 h-10 rounded-xl bg-gov-blue-light grid place-items-center mb-4">
                 <Icon className="w-5 h-5 text-gov-blue" />
               </div>
@@ -275,7 +305,9 @@ function Roles() {
     <section id="roles" className="py-16 md:py-20 bg-white">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">Built for every role in the chain</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">
+            Built for every role in the chain
+          </h2>
           <p className="mt-3 text-slate-500 max-w-lg mx-auto">
             One platform — three purpose-built views.
           </p>
@@ -290,17 +322,23 @@ function Roles() {
                   : "bg-white text-slate-900 border-slate-100 shadow-sm"
               }`}
             >
-              <div className={`w-10 h-10 rounded-xl grid place-items-center mb-4 ${featured ? "bg-white/15" : "bg-gov-blue-light"}`}>
+              <div
+                className={`w-10 h-10 rounded-xl grid place-items-center mb-4 ${featured ? "bg-white/15" : "bg-gov-blue-light"}`}
+              >
                 <Icon className={`w-5 h-5 ${featured ? "text-white" : "text-gov-blue"}`} />
               </div>
-              <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${featured ? "text-blue-200" : "text-gov-blue"}`}>
+              <div
+                className={`text-xs font-bold uppercase tracking-widest mb-1 ${featured ? "text-blue-200" : "text-gov-blue"}`}
+              >
                 {role}
               </div>
               <h3 className="text-xl font-extrabold mb-4">{headline}</h3>
               <ul className="space-y-2.5 flex-1">
                 {features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm">
-                    <CheckCircle2 className={`w-4 h-4 mt-0.5 flex-shrink-0 ${featured ? "text-blue-200" : "text-gov-blue"}`} />
+                    <CheckCircle2
+                      className={`w-4 h-4 mt-0.5 flex-shrink-0 ${featured ? "text-blue-200" : "text-gov-blue"}`}
+                    />
                     <span className={featured ? "text-blue-50" : "text-slate-600"}>{f}</span>
                   </li>
                 ))}
@@ -351,7 +389,10 @@ function HowItWorks() {
         </div>
         <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           {steps.map(({ n, title, body }, i) => (
-            <div key={n} className="relative bg-white rounded-2xl p-7 border border-blue-100 shadow-sm">
+            <div
+              key={n}
+              className="relative bg-white rounded-2xl p-7 border border-blue-100 shadow-sm"
+            >
               {i < steps.length - 1 && (
                 <div className="hidden md:block absolute top-10 -right-4 w-8 text-blue-300 z-10">
                   <ArrowRight className="w-5 h-5" />
@@ -376,7 +417,9 @@ function CtaBanner() {
         <div className="w-12 h-12 rounded-2xl bg-white/10 grid place-items-center mx-auto mb-6">
           <Zap className="w-6 h-6 text-blue-200" />
         </div>
-        <h2 className="text-2xl md:text-3xl font-extrabold">Ready to take control of your energy?</h2>
+        <h2 className="text-2xl md:text-3xl font-extrabold">
+          Ready to take control of your energy?
+        </h2>
         <p className="mt-4 text-blue-200 text-lg">
           Join the households and municipalities across Gauteng already using WattWise.
         </p>
@@ -403,10 +446,13 @@ function Footer() {
           <span className="text-white font-bold tracking-tight">WattWise</span>
         </div>
         <p className="text-xs text-center">
-          Developed for the Gauteng Province Hackathon 2025 · Built with GSM, React &amp; love for the people of South Africa.
+          Developed for the Gauteng Province Hackathon 2025 · Built with GSM, React &amp; love for
+          the people of South Africa.
         </p>
         <div className="flex items-center gap-4 text-xs">
-          <a href="/login" className="hover:text-white transition-colors">Sign in</a>
+          <a href="/login" className="hover:text-white transition-colors">
+            Sign in
+          </a>
           <span>·</span>
           <span>© 2025 WattWise</span>
         </div>
