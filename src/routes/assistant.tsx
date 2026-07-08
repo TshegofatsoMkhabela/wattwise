@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PromptInput } from "@/components/ui/ai-chat-input";
-import { useCopilotAgent, type AgentStatus, type ChatMessage } from "@/lib/directline";
+import { useCopilotAgent, waitLabel, type AgentStatus, type ChatMessage } from "@/lib/directline";
 import { Sparkles, Zap, ShoppingCart, Lightbulb, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,16 +16,47 @@ export const Route = createFileRoute("/assistant")({
 });
 
 const SUGGESTIONS = [
-  { icon: ShoppingCart, label: "Buy electricity units", prompt: "I'd like to buy electricity units." },
+  {
+    icon: ShoppingCart,
+    label: "Buy electricity units",
+    prompt: "I'd like to buy electricity units.",
+  },
   { icon: Zap, label: "Why is my usage high?", prompt: "Why is my electricity usage high today?" },
-  { icon: Lightbulb, label: "Tips to save money", prompt: "Give me tips to lower my electricity bill." },
-  { icon: AlertTriangle, label: "Report a fault", prompt: "I want to report a fault with my meter." },
+  {
+    icon: Lightbulb,
+    label: "Tips to save money",
+    prompt: "Give me tips to lower my electricity bill.",
+  },
+  {
+    icon: AlertTriangle,
+    label: "Report a fault",
+    prompt: "I want to report a fault with my meter.",
+  },
 ];
 
 function AssistantChat() {
-  const { status, messages, awaitingReply, error, sendMessage } = useCopilotAgent();
+  const {
+    status,
+    messages,
+    awaitingReply,
+    awaitingSince,
+    timedOut,
+    error,
+    sendMessage,
+    retryLast,
+  } = useCopilotAgent();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isEmpty = messages.length === 0;
+
+  // While a reply is pending, tick once a second so the escalating wait copy
+  // ("Working on it…" → "Still working…") stays current.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!awaitingReply) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [awaitingReply]);
+  const waitElapsed = awaitingSince ? Date.now() - awaitingSince : 0;
 
   // Keep the conversation pinned to the latest message.
   useEffect(() => {
@@ -62,13 +93,24 @@ function AssistantChat() {
             {messages.map((m) => (
               <MessageBubble key={m.id} message={m} />
             ))}
-            {awaitingReply && <TypingIndicator />}
+            {awaitingReply && <TypingIndicator label={waitLabel(waitElapsed)} />}
           </div>
         )}
       </div>
 
       {error && status === "error" && (
         <p className="text-[11px] text-red-500 mt-2 flex-shrink-0 text-center">{error}</p>
+      )}
+
+      {timedOut && (
+        <div className="flex justify-center mt-2 flex-shrink-0">
+          <button
+            onClick={retryLast}
+            className="text-xs font-semibold text-[#005EB8] hover:text-[#003F8A] border border-blue-100 bg-[#EBF5FF] rounded-full px-4 py-1.5 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       )}
 
       {/* Composer pinned to the bottom */}
@@ -87,14 +129,35 @@ function AssistantChat() {
 /* ─── Status pill ──────────────────────────────────────────── */
 function StatusPill({ status }: { status: AgentStatus }) {
   const map: Record<AgentStatus, { label: string; dot: string; text: string; bg: string }> = {
-    online: { label: "Connected", dot: "bg-emerald-400 animate-pulse", text: "text-emerald-600", bg: "bg-emerald-50" },
-    connecting: { label: "Connecting…", dot: "bg-amber-400 animate-pulse", text: "text-amber-600", bg: "bg-amber-50" },
+    online: {
+      label: "Connected",
+      dot: "bg-emerald-400 animate-pulse",
+      text: "text-emerald-600",
+      bg: "bg-emerald-50",
+    },
+    connecting: {
+      label: "Connecting…",
+      dot: "bg-amber-400 animate-pulse",
+      text: "text-amber-600",
+      bg: "bg-amber-50",
+    },
     error: { label: "Offline", dot: "bg-red-400", text: "text-red-600", bg: "bg-red-50" },
-    unconfigured: { label: "Not connected", dot: "bg-slate-300", text: "text-slate-500", bg: "bg-slate-100" },
+    unconfigured: {
+      label: "Not connected",
+      dot: "bg-slate-300",
+      text: "text-slate-500",
+      bg: "bg-slate-100",
+    },
   };
   const c = map[status];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold flex-shrink-0", c.bg, c.text)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold flex-shrink-0",
+        c.bg,
+        c.text,
+      )}
+    >
       <span className={cn("w-1.5 h-1.5 rounded-full", c.dot)} />
       {c.label}
     </span>
@@ -142,7 +205,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           "max-w-[85%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm",
           isUser
             ? "bg-[#005EB8] text-white rounded-br-md"
-            : "bg-slate-50 text-slate-800 border border-slate-100 rounded-bl-md"
+            : "bg-slate-50 text-slate-800 border border-slate-100 rounded-bl-md",
         )}
       >
         {message.text}
@@ -152,17 +215,20 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 }
 
 /* ─── Typing indicator ─────────────────────────────────────── */
-function TypingIndicator() {
+function TypingIndicator({ label }: { label?: string }) {
   return (
     <div className="flex justify-start">
-      <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
-        {[0, 150, 300].map((delay) => (
-          <span
-            key={delay}
-            className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"
-            style={{ animationDelay: `${delay}ms` }}
-          />
-        ))}
+      <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {[0, 150, 300].map((delay) => (
+            <span
+              key={delay}
+              className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"
+              style={{ animationDelay: `${delay}ms` }}
+            />
+          ))}
+        </div>
+        {label ? <span className="text-[11px] text-slate-400">{label}</span> : null}
       </div>
     </div>
   );

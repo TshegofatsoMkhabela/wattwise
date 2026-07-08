@@ -43,7 +43,7 @@ export interface ChatMessage {
 }
 
 // Shape of the activities Direct Line streams back over the WebSocket.
-interface DirectLineActivity {
+export interface DirectLineActivity {
   id?: string;
   type: string;
   text?: string;
@@ -59,6 +59,57 @@ interface StartResponse {
 
 function makeId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// ── Pure, framework-free helpers (unit-tested in directline.test.ts) ─────────
+
+/** How long to wait for a bot reply before we stop blocking the UI and show a
+ * timeout notice. Absolute (not reset by the ~4s typing heartbeat), so a stuck
+ * intent can't hang the UI forever. Tunable. */
+export const RESPONSE_TIMEOUT_MS = 45_000;
+
+const TIMEOUT_NOTICE =
+  "This is taking longer than usual and the assistant hasn't responded yet. You can retry or rephrase your question.";
+
+export type ActivityClass =
+  | { kind: "bot-message"; message: ChatMessage }
+  | { kind: "typing" }
+  | { kind: "ignore" };
+
+/**
+ * Decide what an inbound Direct Line activity means: a renderable bot message, a
+ * typing/liveness heartbeat, or something to ignore (our own echo, an empty or
+ * non-message activity, or a duplicate we've already seen). `seen` is mutated to
+ * record message ids so reconnect replays are deduped.
+ */
+export function classifyActivity(act: DirectLineActivity, seen: Set<string>): ActivityClass {
+  const isSelf = act.from?.role === "user" || act.from?.id === "user";
+  if (act.type === "typing" && !isSelf) return { kind: "typing" };
+  if (act.type !== "message" || !act.text || isSelf) return { kind: "ignore" };
+  const key = act.id ?? makeId();
+  if (seen.has(key)) return { kind: "ignore" };
+  seen.add(key);
+  return {
+    kind: "bot-message",
+    message: {
+      id: key,
+      role: "bot",
+      text: act.text,
+      timestamp: act.timestamp ? new Date(act.timestamp).getTime() : Date.now(),
+    },
+  };
+}
+
+/** Escalating, honest wait copy shown under the typing dots. Empty = plain dots. */
+export function waitLabel(elapsedMs: number): string {
+  if (elapsedMs >= 20_000) return "Still working — complex questions take a little longer…";
+  if (elapsedMs >= 8_000) return "Working on it…";
+  return "";
+}
+
+/** Whether we've waited long enough to stop blocking the UI on a reply. */
+export function isResponseTimedOut(elapsedMs: number): boolean {
+  return elapsedMs >= RESPONSE_TIMEOUT_MS;
 }
 
 /**
@@ -86,7 +137,7 @@ async function startConversation(signal: AbortSignal): Promise<StartResponse> {
 async function openConversation(
   authToken: string,
   signal: AbortSignal,
-  existingConversationId?: string
+  existingConversationId?: string,
 ): Promise<StartResponse> {
   const url = existingConversationId
     ? `${DOMAIN}/conversations/${existingConversationId}`
@@ -153,7 +204,7 @@ export interface TriggerAttachment {
 export async function sendAgentTrigger(
   text: string,
   value?: unknown,
-  attachments?: TriggerAttachment[]
+  attachments?: TriggerAttachment[],
 ): Promise<TriggerResult> {
   if (!isDirectLineConfigured) return { ok: false, reason: "unconfigured" };
   const conv = await getTriggerConversation();
@@ -184,7 +235,9 @@ export async function sendAgentTrigger(
  * React hook that manages a live Direct Line conversation with the agent.
  */
 export function useCopilotAgent() {
-  const [status, setStatus] = useState<AgentStatus>(isDirectLineConfigured ? "connecting" : "unconfigured");
+  const [status, setStatus] = useState<AgentStatus>(
+    isDirectLineConfigured ? "connecting" : "unconfigured",
+  );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [awaitingReply, setAwaitingReply] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -192,6 +245,21 @@ export function useCopilotAgent() {
   const conversationRef = useRef<{ id: string; token: string } | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const seenActivityIds = useRef<Set<string>>(new Set());
+
+  // Robustness state: when the current prompt started waiting (drives escalating
+  // copy), whether we've stopped waiting (timed out), plus the pending timer and
+  // the last prompt that backs the retry affordance.
+  const [awaitingSince, setAwaitingSince] = useState<number | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const replyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastUserTextRef = useRef<string>("");
+
+  const clearReplyTimeout = useCallback(() => {
+    if (replyTimeoutRef.current != null) {
+      clearTimeout(replyTimeoutRef.current);
+      replyTimeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!isDirectLineConfigured) return;
@@ -223,27 +291,23 @@ export function useCopilotAgent() {
           if (!event.data) return; // Direct Line sends empty keep-alive frames.
           try {
             const payload = JSON.parse(event.data) as { activities?: DirectLineActivity[] };
-            const activities = payload.activities ?? [];
             const botMessages: ChatMessage[] = [];
 
-            for (const act of activities) {
-              if (act.type !== "message" || !act.text) continue;
-              // Ignore our own echoed messages; keep only the agent's.
-              const isUser = act.from?.role === "user" || act.from?.id === "user";
-              if (isUser) continue;
-              const key = act.id ?? makeId();
-              if (seenActivityIds.current.has(key)) continue;
-              seenActivityIds.current.add(key);
-              botMessages.push({
-                id: key,
-                role: "bot",
-                text: act.text,
-                timestamp: act.timestamp ? new Date(act.timestamp).getTime() : Date.now(),
-              });
+            for (const act of payload.activities ?? []) {
+              const res = classifyActivity(act, seenActivityIds.current);
+              if (res.kind === "bot-message") botMessages.push(res.message);
+              // `typing` is the agent's ~4s liveness heartbeat. We already show a
+              // waiting state via awaitingReply, and we deliberately do NOT extend
+              // the absolute timeout on it — a stuck intent keeps typing forever.
             }
 
             if (botMessages.length > 0) {
+              // A real reply landed (even a late one after a timeout): stop
+              // blocking, clear the timer, and drop any timeout notice state.
+              clearReplyTimeout();
               setAwaitingReply(false);
+              setAwaitingSince(null);
+              setTimedOut(false);
               setMessages((prev) => [...prev, ...botMessages]);
             }
           } catch {
@@ -261,8 +325,9 @@ export function useCopilotAgent() {
       controller.abort();
       socket?.close();
       socketRef.current = null;
+      clearReplyTimeout();
     };
-  }, []);
+  }, [clearReplyTimeout]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -270,7 +335,10 @@ export function useCopilotAgent() {
       if (!trimmed) return;
 
       // Optimistically render the user's message.
-      setMessages((prev) => [...prev, { id: makeId(), role: "user", text: trimmed, timestamp: Date.now() }]);
+      setMessages((prev) => [
+        ...prev,
+        { id: makeId(), role: "user", text: trimmed, timestamp: Date.now() },
+      ]);
 
       const conv = conversationRef.current;
       if (!isDirectLineConfigured || !conv) {
@@ -287,7 +355,25 @@ export function useCopilotAgent() {
         return;
       }
 
+      // Begin (or restart) the wait: remember the prompt for retry, record the
+      // start for escalating copy, and arm an absolute timeout so a stuck reply
+      // can't hang the UI forever.
+      lastUserTextRef.current = trimmed;
+      setError(null);
+      setTimedOut(false);
       setAwaitingReply(true);
+      setAwaitingSince(Date.now());
+      clearReplyTimeout();
+      replyTimeoutRef.current = setTimeout(() => {
+        setAwaitingReply(false);
+        setAwaitingSince(null);
+        setTimedOut(true);
+        setMessages((prev) => [
+          ...prev,
+          { id: makeId(), role: "bot", text: TIMEOUT_NOTICE, timestamp: Date.now() },
+        ]);
+      }, RESPONSE_TIMEOUT_MS);
+
       try {
         const res = await fetch(`${DOMAIN}/conversations/${conv.id}/activities`, {
           method: "POST",
@@ -303,12 +389,29 @@ export function useCopilotAgent() {
         });
         if (!res.ok) throw new Error(`Send failed (${res.status})`);
       } catch (err) {
+        // The send itself failed — cancel the pending timeout so we don't also
+        // show a "took too long" notice on top of the send error.
+        clearReplyTimeout();
         setAwaitingReply(false);
+        setAwaitingSince(null);
         setError(err instanceof Error ? err.message : "Message failed to send.");
       }
     },
-    []
+    [clearReplyTimeout],
   );
 
-  return { status, messages, awaitingReply, error, sendMessage };
+  const retryLast = useCallback(() => {
+    if (lastUserTextRef.current) sendMessage(lastUserTextRef.current);
+  }, [sendMessage]);
+
+  return {
+    status,
+    messages,
+    awaitingReply,
+    awaitingSince,
+    timedOut,
+    error,
+    sendMessage,
+    retryLast,
+  };
 }
