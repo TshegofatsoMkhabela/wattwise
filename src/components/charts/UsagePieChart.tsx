@@ -17,7 +17,13 @@ interface Props {
   alert: boolean;
 }
 
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) {
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { name: string; value: number }[];
+}) {
   if (!active || !payload?.length) return null;
   const { name, value } = payload[0];
   return (
@@ -84,8 +90,13 @@ export function UsagePieChart({ kitchenWatts, alert }: Props) {
                 kitchenAlert ? "bg-red-50 -mx-2 px-2 py-1 animate-pulse" : ""
               }`}
             >
-              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
-              <span className={`text-sm flex-1 ${isKitchen ? "font-semibold text-slate-900" : "text-slate-700"}`}>
+              <span
+                className="w-3 h-3 rounded-full flex-shrink-0"
+                style={{ backgroundColor: d.color }}
+              />
+              <span
+                className={`text-sm flex-1 ${isKitchen ? "font-semibold text-slate-900" : "text-slate-700"}`}
+              >
                 {d.name}
                 {isKitchen && (
                   <span

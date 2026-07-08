@@ -1,7 +1,22 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Building2, Wrench, Bell, Smartphone, Settings, FileText,
-  LogOut, Zap, Home, Menu, X, ShieldAlert, AlertTriangle, CheckCircle, ChevronDown, ChevronUp,
+  LayoutDashboard,
+  Building2,
+  Wrench,
+  Bell,
+  Smartphone,
+  Settings,
+  FileText,
+  LogOut,
+  Zap,
+  Home,
+  Menu,
+  X,
+  ShieldAlert,
+  AlertTriangle,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuthStore } from "@/store/authStore";
@@ -41,9 +56,27 @@ const roleBadgeColor = {
 };
 
 const alertConfig = {
-  critical: { Icon: ShieldAlert,   border: "border-l-red-400",    iconClass: "text-red-500",   bg: "bg-red-50",      label: "Critical" },
-  warning:  { Icon: AlertTriangle, border: "border-l-amber-400",  iconClass: "text-amber-500", bg: "bg-amber-50",    label: "Warning" },
-  info:     { Icon: CheckCircle,   border: "border-l-[#005EB8]",  iconClass: "text-[#005EB8]", bg: "bg-[#EBF5FF]",  label: "Info" },
+  critical: {
+    Icon: ShieldAlert,
+    border: "border-l-red-400",
+    iconClass: "text-red-500",
+    bg: "bg-red-50",
+    label: "Critical",
+  },
+  warning: {
+    Icon: AlertTriangle,
+    border: "border-l-amber-400",
+    iconClass: "text-amber-500",
+    bg: "bg-amber-50",
+    label: "Warning",
+  },
+  info: {
+    Icon: CheckCircle,
+    border: "border-l-[#005EB8]",
+    iconClass: "text-[#005EB8]",
+    bg: "bg-[#EBF5FF]",
+    label: "Info",
+  },
 } as const;
 
 /* ─── Expandable alert row ─────────────────────────────────── */
@@ -51,7 +84,13 @@ function AlertRow({
   a,
   onDismiss,
 }: {
-  a: { id: string; severity: "critical" | "warning" | "info"; description: string; meterId: string; createdAt: string };
+  a: {
+    id: string;
+    severity: "critical" | "warning" | "info";
+    description: string;
+    meterId: string;
+    createdAt: string;
+  };
   onDismiss: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -74,10 +113,11 @@ function AlertRow({
             {formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}
           </div>
         </div>
-        {expanded
-          ? <ChevronUp className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-          : <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
-        }
+        {expanded ? (
+          <ChevronUp className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+        ) : (
+          <ChevronDown className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+        )}
       </button>
 
       {/* Expanded detail */}
@@ -111,11 +151,11 @@ function AlertRow({
 }
 
 export function AppLayout({ children, title }: { children: ReactNode; title: string }) {
-  const user    = useAuthStore((s) => s.user);
-  const logout  = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
   const connected = useLiveData((s) => s.connected);
-  const alerts  = useAlerts((s) => s.alerts);
+  const alerts = useAlerts((s) => s.alerts);
   const dismiss = useAlerts((s) => s.dismiss);
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [now, setNow] = useState(new Date());
@@ -134,8 +174,13 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
   if (!user) return null;
 
   const items = navByRole[user.role];
-  const RoleIcon = user.role === "consumer" ? Home : user.role === "municipality" ? Building2 : Wrench;
-  const initials = user.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
+  const RoleIcon =
+    user.role === "consumer" ? Home : user.role === "municipality" ? Building2 : Wrench;
+  const initials = user.name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("");
   const unreadCount = alerts.length;
 
   return (
@@ -150,10 +195,14 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
             </div>
             <div>
               <div className="text-sm font-bold text-slate-900 tracking-tight">WattWise</div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400">Energy Gateway</div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400">
+                Energy Gateway
+              </div>
             </div>
           </div>
-          <div className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${roleBadgeColor[user.role]}`}>
+          <div
+            className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${roleBadgeColor[user.role]}`}
+          >
             <RoleIcon className="w-3 h-3" />
             {roleLabel[user.role]}
           </div>
@@ -184,8 +233,12 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
         {/* Footer */}
         <div className="px-3 py-3 border-t border-slate-100 space-y-1">
           <div className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg">
-            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${connected ? "bg-emerald-400 animate-pulse" : "bg-amber-400 animate-pulse"}`} />
-            <span className={connected ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
+            <span
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${connected ? "bg-emerald-400 animate-pulse" : "bg-amber-400 animate-pulse"}`}
+            />
+            <span
+              className={connected ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}
+            >
               {connected ? "Live · Serial bridge" : "Bridge offline"}
             </span>
           </div>
@@ -198,7 +251,10 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
               <div className="text-[10px] text-slate-400 truncate">{user.email}</div>
             </div>
             <button
-              onClick={() => { logout(); navigate({ to: "/login" }); }}
+              onClick={() => {
+                logout();
+                navigate({ to: "/login" });
+              }}
               className="text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
               aria-label="Sign out"
             >
@@ -228,7 +284,10 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
             </div>
             <span className="font-bold text-slate-900 text-sm">WattWise</span>
           </div>
-          <button onClick={() => setMobileNavOpen(false)} className="text-slate-400 hover:text-slate-700">
+          <button
+            onClick={() => setMobileNavOpen(false)}
+            className="text-slate-400 hover:text-slate-700"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -253,7 +312,10 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
         </nav>
         <div className="px-4 py-4 border-t border-slate-100">
           <button
-            onClick={() => { logout(); navigate({ to: "/login" }); }}
+            onClick={() => {
+              logout();
+              navigate({ to: "/login" });
+            }}
             className="flex items-center gap-2 text-sm text-red-500 font-medium"
           >
             <LogOut className="w-4 h-4" /> Sign out

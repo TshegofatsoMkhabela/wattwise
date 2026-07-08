@@ -12,7 +12,13 @@ const TOOLTIP_STYLE = {
   boxShadow: "0 4px 6px -1px rgba(0,0,0,0.07)",
 };
 
-export function WaveformChart({ height = 240, points }: { height?: number; points?: { timestamp: number; watts: number }[] }) {
+export function WaveformChart({
+  height = 240,
+  points,
+}: {
+  height?: number;
+  points?: { timestamp: number; watts: number }[];
+}) {
   const readings = useLiveData((s) => s.readings);
   const data = (points ?? readings).slice(-300).map((r) => ({
     t: r.timestamp,
@@ -29,7 +35,11 @@ export function WaveformChart({ height = 240, points }: { height?: number; point
             <stop offset="100%" stopColor={BLUE} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94A3B8" }} interval={Math.floor(data.length / 6)} />
+        <XAxis
+          dataKey="label"
+          tick={{ fontSize: 10, fill: "#94A3B8" }}
+          interval={Math.floor(data.length / 6)}
+        />
         <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} width={40} />
         <Tooltip
           contentStyle={TOOLTIP_STYLE}
@@ -37,8 +47,10 @@ export function WaveformChart({ height = 240, points }: { height?: number; point
           formatter={(v: number) => [`${v} W`, "Power"]}
         />
         <Area
-          type="monotone" dataKey="watts"
-          stroke={BLUE} strokeWidth={2}
+          type="monotone"
+          dataKey="watts"
+          stroke={BLUE}
+          strokeWidth={2}
           fill="url(#wave)"
           isAnimationActive={false}
         />
@@ -58,7 +70,14 @@ export function Sparkline({ data }: { data: number[] }) {
             <stop offset="100%" stopColor={BLUE} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <Area type="monotone" dataKey="v" stroke={BLUE} strokeWidth={1.5} fill="url(#spark)" isAnimationActive={false} />
+        <Area
+          type="monotone"
+          dataKey="v"
+          stroke={BLUE}
+          strokeWidth={1.5}
+          fill="url(#spark)"
+          isAnimationActive={false}
+        />
       </AreaChart>
     </ResponsiveContainer>
   );

@@ -5,10 +5,19 @@ import { toast } from "sonner";
 import { X, AlertTriangle, Send } from "lucide-react";
 
 export function DispatchModal({
-  open, onClose, meterId, address, alertId, summary,
+  open,
+  onClose,
+  meterId,
+  address,
+  alertId,
+  summary,
 }: {
-  open: boolean; onClose: () => void; meterId: string; address: string;
-  alertId?: string; summary?: string;
+  open: boolean;
+  onClose: () => void;
+  meterId: string;
+  address: string;
+  alertId?: string;
+  summary?: string;
 }) {
   const [techId, setTechId] = useState(technicians[0].id);
   const [priority, setPriority] = useState<"urgent" | "normal" | "low">("urgent");
@@ -26,9 +35,13 @@ export function DispatchModal({
   };
 
   const priorityConfig = {
-    urgent: { label: "Urgent",  active: "bg-red-500 text-white border-red-500",   dot: "bg-red-500" },
-    normal: { label: "Normal",  active: "bg-amber-500 text-white border-amber-500", dot: "bg-amber-500" },
-    low:    { label: "Low",     active: "bg-[#005EB8] text-white border-[#005EB8]", dot: "bg-[#005EB8]" },
+    urgent: { label: "Urgent", active: "bg-red-500 text-white border-red-500", dot: "bg-red-500" },
+    normal: {
+      label: "Normal",
+      active: "bg-amber-500 text-white border-amber-500",
+      dot: "bg-amber-500",
+    },
+    low: { label: "Low", active: "bg-[#005EB8] text-white border-[#005EB8]", dot: "bg-[#005EB8]" },
   } as const;
 
   return (
@@ -78,11 +91,14 @@ export function DispatchModal({
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">Technician</label>
             <select
-              value={techId} onChange={(e) => setTechId(e.target.value)}
+              value={techId}
+              onChange={(e) => setTechId(e.target.value)}
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30 focus:border-[#005EB8] transition-colors"
             >
               {technicians.map((t) => (
-                <option key={t.id} value={t.id}>{t.name} — {t.activeJobs} active job{t.activeJobs !== 1 ? "s" : ""}</option>
+                <option key={t.id} value={t.id}>
+                  {t.name} — {t.activeJobs} active job{t.activeJobs !== 1 ? "s" : ""}
+                </option>
               ))}
             </select>
           </div>
@@ -99,7 +115,9 @@ export function DispatchModal({
                     key={p}
                     onClick={() => setPriority(p)}
                     className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                      isActive ? cfg.active : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                      isActive
+                        ? cfg.active
+                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
                     }`}
                   >
                     <span className="flex items-center justify-center gap-1.5">
@@ -114,9 +132,12 @@ export function DispatchModal({
 
           {/* Instructions */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Instructions</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+              Instructions
+            </label>
             <textarea
-              value={notes} onChange={(e) => setNotes(e.target.value)}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Approach with caution. Check seal first…"
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm bg-white text-slate-800 placeholder-slate-300 resize-none focus:outline-none focus:ring-2 focus:ring-[#005EB8]/30 focus:border-[#005EB8] transition-colors"
@@ -136,7 +157,8 @@ export function DispatchModal({
             onClick={submit}
             className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-[#005EB8] text-white font-semibold hover:bg-[#003F8A] transition-colors inline-flex items-center justify-center gap-2"
           >
-            <Send className="w-3.5 h-3.5" />Dispatch
+            <Send className="w-3.5 h-3.5" />
+            Dispatch
           </button>
         </div>
       </div>

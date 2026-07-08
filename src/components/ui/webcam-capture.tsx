@@ -56,7 +56,7 @@ export function WebcamCapture({
           ? "Camera permission denied. Allow access, or use upload."
           : name === "NotFoundError"
             ? "No camera found on this device. Use upload instead."
-            : "Could not start the camera. Use upload instead."
+            : "Could not start the camera. Use upload instead.",
       );
     }
   }, []);
@@ -89,7 +89,12 @@ export function WebcamCapture({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, w, h);
-    onChange({ name: `evidence-${Date.now()}.jpg`, dataUrl: canvas.toDataURL("image/jpeg", 0.85), width: w, height: h });
+    onChange({
+      name: `evidence-${Date.now()}.jpg`,
+      dataUrl: canvas.toDataURL("image/jpeg", 0.85),
+      width: w,
+      height: h,
+    });
     closeModal();
   };
 
@@ -101,7 +106,8 @@ export function WebcamCapture({
     reader.onload = () => {
       const dataUrl = String(reader.result);
       const img = new Image();
-      img.onload = () => onChange({ name: file.name, dataUrl, width: img.naturalWidth, height: img.naturalHeight });
+      img.onload = () =>
+        onChange({ name: file.name, dataUrl, width: img.naturalWidth, height: img.naturalHeight });
       img.onerror = () => onChange({ name: file.name, dataUrl, width: 0, height: 0 });
       img.src = dataUrl;
     };
@@ -115,10 +121,16 @@ export function WebcamCapture({
       {value ? (
         // ── Captured preview ──
         <div className="flex items-center gap-3 border border-input rounded-lg p-2">
-          <img src={value.dataUrl} alt="Evidence" className="w-14 h-14 rounded-md object-cover flex-shrink-0" />
+          <img
+            src={value.dataUrl}
+            alt="Evidence"
+            className="w-14 h-14 rounded-md object-cover flex-shrink-0"
+          />
           <div className="min-w-0 flex-1">
             <div className="text-xs font-medium text-slate-700 truncate">{value.name}</div>
-            <div className="text-[11px] text-slate-400">{value.width ? `${value.width}×${value.height}` : "image"}</div>
+            <div className="text-[11px] text-slate-400">
+              {value.width ? `${value.width}×${value.height}` : "image"}
+            </div>
           </div>
           <button
             type="button"
@@ -158,7 +170,10 @@ export function WebcamCapture({
 
       {/* ── Camera modal ── */}
       {open && (
-        <div className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm grid place-items-center p-4" onClick={closeModal}>
+        <div
+          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm grid place-items-center p-4"
+          onClick={closeModal}
+        >
           <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-100 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
@@ -167,7 +182,11 @@ export function WebcamCapture({
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                 <Camera className="w-4 h-4 text-[#005EB8]" /> Capture evidence
               </div>
-              <button onClick={closeModal} className="text-slate-400 hover:text-slate-700" aria-label="Close">
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-slate-700"
+                aria-label="Close"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>

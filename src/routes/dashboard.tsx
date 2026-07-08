@@ -6,10 +6,7 @@ import { AlertTriangle, Zap, Lightbulb, Sparkles, ArrowRight, X } from "lucide-r
 import { UsagePieChart } from "@/components/charts/UsagePieChart";
 import { CountUp } from "@/components/ui/count-up";
 import { toast } from "sonner";
-import { useState, useEffect, useRef } from "react";
-import { sendAgentTrigger } from "@/lib/directline";
-import { evaluateHighUsageAlert, type HighUsageAlertState } from "@/lib/high-usage-alert";
-import { apiUrl } from "@/lib/api";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · WattWise" }] }),
@@ -29,10 +26,6 @@ function ConsumerDashboard() {
   const watts = useLiveData((s) => s.current.watts);
   const sendCommand = useLiveData((s) => s.sendCommand);
   const [dismissed, setDismissed] = useState(false);
-  const highUsageAlertState = useRef<HighUsageAlertState>({
-    highUsageStartedAt: null,
-    lastAgentAlertAt: 0,
-  });
 
   // Only show the alert banner when the live feed reports overuse.
   const alertVisible = state === "alert" && !dismissed;
@@ -64,16 +57,9 @@ function ConsumerDashboard() {
     }
   }, [state, sendCommand]);
 
-  useEffect(() => {
-    const result = evaluateHighUsageAlert(watts, Date.now(), highUsageAlertState.current);
-    highUsageAlertState.current = result.state;
-    if (result.shouldTrigger) void triggerHighUsageAgentAlert(watts);
-  }, [watts]);
-
   return (
     <div className="space-y-4">
       {alertVisible && <SmartMeterAlert watts={watts} onClose={() => setDismissed(true)} />}
-      <DemoSimulatorCard watts={watts} />
       <QuickStatsRow
         todayKWh={todayKWh}
         costRand={costRand}
@@ -82,111 +68,6 @@ function ConsumerDashboard() {
       />
       <UsageBreakdown watts={watts} alert={state === "alert"} />
       <LoadSheddingCard />
-    </div>
-  );
-}
-
-async function triggerHighUsageAgentAlert(watts: number) {
-  try {
-    const profileResponse = await fetch(apiUrl("/api/households/demo/profile"));
-    const household = profileResponse.ok ? await profileResponse.json() : null;
-    const payload = {
-      eventType: "household_high_usage_alert",
-      source: "wattwise-frontend-demo",
-      detectedAt: new Date().toISOString(),
-      currentWatts: Math.round(watts),
-      thresholdWatts: 1500,
-      household,
-      requestedAction:
-        "Route this event to the Alert Agent and send the configured high electricity usage email.",
-    };
-    const result = await sendAgentTrigger(
-      `High household electricity usage detected: ${Math.round(watts)} W. Route to Alert Agent for email notification.`,
-      payload,
-    );
-    if (result.ok) {
-      toast.success("Orchestrator alerted", {
-        description: "High usage event sent to the Copilot Studio agent.",
-        duration: 3500,
-      });
-    } else if (result.reason !== "unconfigured") {
-      toast.error("Orchestrator alert failed", {
-        description: result.reason ?? "The agent trigger could not be sent.",
-        duration: 4500,
-      });
-    }
-  } catch (error) {
-    toast.error("Orchestrator alert failed", {
-      description: error instanceof Error ? error.message : "The agent trigger could not be sent.",
-      duration: 4500,
-    });
-  }
-}
-
-function DemoSimulatorCard({ watts }: { watts: number }) {
-  const sendCommand = useLiveData((s) => s.sendCommand);
-  const source = useLiveData((s) => s.source);
-  const state = useLiveData((s) => s.state);
-  const [busyMode, setBusyMode] = useState<string | null>(null);
-
-  const setMode = async (mode: "normal" | "high" | "off") => {
-    setBusyMode(mode);
-    const socketSent = sendCommand(mode.toUpperCase());
-    try {
-      await fetch(apiUrl("/api/live/simulator"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }),
-      });
-      toast.success("Simulator updated", {
-        description:
-          mode === "high"
-            ? "High usage will trigger the orchestrator after a few seconds."
-            : `Mode set to ${mode}.`,
-        duration: 2500,
-      });
-    } catch {
-      if (!socketSent) {
-        toast.error("Simulator unavailable", {
-          description: "The backend simulator is not reachable right now.",
-          duration: 3500,
-        });
-      }
-    } finally {
-      setBusyMode(null);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Demo Simulator · {source === "bridge" ? "Azure backend" : "local fallback"}
-          </div>
-          <div className="mt-1 text-sm font-semibold text-slate-900">
-            Live household draw: {Math.round(watts).toLocaleString("en-ZA")} W
-          </div>
-          <div className="text-xs text-slate-500">
-            {state === "alert"
-              ? "High usage is active. The app will call the orchestrator automatically."
-              : "Use High Usage to simulate a costly appliance spike."}
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 sm:w-auto">
-          {(["normal", "high", "off"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => void setMode(mode)}
-              disabled={busyMode !== null}
-              className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold capitalize text-slate-700 transition-colors hover:border-[#005EB8] hover:text-[#005EB8] disabled:opacity-60"
-            >
-              {busyMode === mode ? "..." : mode}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

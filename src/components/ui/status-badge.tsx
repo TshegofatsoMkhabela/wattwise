@@ -11,15 +11,24 @@ const styles: Record<MeterStatus | "in_progress" | "open" | "resolved", string> 
 };
 
 const labels: Record<string, string> = {
-  normal: "Normal", warning: "Warning", critical: "Critical", offline: "Offline",
-  open: "Open", in_progress: "In Progress", resolved: "Resolved",
-  assigned: "Assigned", en_route: "En Route", on_site: "On Site",
+  normal: "Normal",
+  warning: "Warning",
+  critical: "Critical",
+  offline: "Offline",
+  open: "Open",
+  in_progress: "In Progress",
+  resolved: "Resolved",
+  assigned: "Assigned",
+  en_route: "En Route",
+  on_site: "On Site",
 };
 
 export function StatusBadge({ status }: { status: string }) {
   const cls = styles[status as MeterStatus] ?? "bg-muted text-muted-foreground border-border";
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${cls}`}>
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${cls}`}
+    >
       {labels[status] ?? status}
     </span>
   );

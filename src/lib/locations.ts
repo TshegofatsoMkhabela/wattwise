@@ -1,6 +1,6 @@
 export const SOWETO_GENERAL = {
   lat: -26.2485,
-  lng: 27.8540,
+  lng: 27.854,
 } as const;
 
 export const SOWETO_CAMPUS_YWCA = {

@@ -30,8 +30,8 @@ import { apiUrl } from "./api";
 
 const DEFAULT_DOMAIN = "https://directline.botframework.com/v3/directline";
 
-const TOKEN_URL =
-  (import.meta.env.VITE_DIRECTLINE_TOKEN_URL ?? "").trim() || apiUrl("/api/directline/token");
+const TOKEN_URL = (import.meta.env.VITE_DIRECTLINE_TOKEN_URL ?? "").trim();
+const BACKEND_TOKEN_URL = apiUrl("/api/directline/token");
 const SECRET = (import.meta.env.VITE_DIRECTLINE_SECRET ?? "").trim();
 const DOMAIN = (import.meta.env.VITE_DIRECTLINE_DOMAIN ?? "").trim() || DEFAULT_DOMAIN;
 
@@ -123,8 +123,9 @@ export function isResponseTimedOut(elapsedMs: number): boolean {
  */
 async function startConversation(signal: AbortSignal): Promise<StartResponse> {
   // Path 1: token endpoint returns a token we then exchange for a conversation.
-  if (TOKEN_URL) {
-    const res = await fetch(TOKEN_URL, { method: "GET", signal });
+  const resolvedTokenUrl = TOKEN_URL || BACKEND_TOKEN_URL;
+  if (resolvedTokenUrl) {
+    const res = await fetch(resolvedTokenUrl, { method: "GET", signal });
     if (!res.ok) throw new Error(`Token endpoint returned ${res.status}`);
     const data = (await res.json()) as { token?: string; conversationId?: string };
     if (!data.token) throw new Error("Token endpoint did not return a token");
@@ -167,22 +168,69 @@ async function openConversation(
 // messages to the orchestrator agent (e.g. a technician advancing a job),
 // without any chat UI. The orchestrator can route these to a downstream
 // scheduler agent. Kept separate from the assistant's chat conversation.
-let triggerConversation: Promise<{ id: string; token: string } | null> | null = null;
+interface TriggerChannel {
+  id: string;
+  token: string;
+  socket: WebSocket | null;
+}
 
-async function getTriggerConversation(): Promise<{ id: string; token: string } | null> {
+let triggerChannel: Promise<TriggerChannel | null> | null = null;
+
+async function getTriggerChannel(): Promise<TriggerChannel | null> {
   if (!isDirectLineConfigured) return null;
-  if (!triggerConversation) {
-    triggerConversation = (async () => {
+  if (!triggerChannel) {
+    triggerChannel = (async () => {
       const conv = await startConversation(new AbortController().signal);
-      return { id: conv.conversationId, token: conv.token };
+      const channel: TriggerChannel = {
+        id: conv.conversationId,
+        token: conv.token,
+        socket: null,
+      };
+
+      if (conv.streamUrl) {
+        const ws = new WebSocket(conv.streamUrl);
+        channel.socket = ws;
+        const seen = new Set<string>();
+
+        ws.onmessage = (event) => {
+          if (!event.data) return;
+          try {
+            const payload = JSON.parse(event.data) as { activities?: DirectLineActivity[] };
+            for (const act of payload.activities ?? []) {
+              const res = classifyActivity(act, seen);
+              if (res.kind === "bot-message") {
+                const report = parseReportReady(res.message.text);
+                if (report) {
+                  addReport(report);
+                } else {
+                  console.warn("[trigger-ws] Unexpected bot message:", res.message.text);
+                }
+              }
+            }
+          } catch {
+            // Ignore unparseable frames.
+          }
+        };
+
+        ws.onerror = () => {
+          console.warn("[trigger-ws] WebSocket error — next trigger will reconnect.");
+          triggerChannel = null;
+        };
+
+        ws.onclose = () => {
+          triggerChannel = null;
+        };
+      }
+
+      return channel;
     })();
     // If starting fails, clear the cache so the next trigger retries cleanly.
-    triggerConversation.catch(() => {
-      triggerConversation = null;
+    triggerChannel.catch(() => {
+      triggerChannel = null;
     });
   }
   try {
-    return await triggerConversation;
+    return await triggerChannel;
   } catch {
     return null;
   }
@@ -212,7 +260,7 @@ export async function sendAgentTrigger(
   attachments?: TriggerAttachment[],
 ): Promise<TriggerResult> {
   if (!isDirectLineConfigured) return { ok: false, reason: "unconfigured" };
-  const conv = await getTriggerConversation();
+  const conv = await getTriggerChannel();
   if (!conv) return { ok: false, reason: "no-conversation" };
   try {
     const res = await fetch(`${DOMAIN}/conversations/${conv.id}/activities`, {
@@ -254,13 +302,14 @@ export async function sendReportTrigger(
   reportType: "consumption" | "tamper" | "loadshed",
   period?: string,
   format?: "pdf" | "csv",
+  requestedBy = "Thandi Mokoena",
 ): Promise<TriggerResult> {
   return sendAgentTrigger("Generate report", {
     intent: "generate-report",
     reportType,
     period,
     format,
-    requestedBy: "Thandi Mokoena",
+    requestedBy,
   });
 }
 
@@ -329,10 +378,17 @@ export function useCopilotAgent() {
             for (const act of payload.activities ?? []) {
               const res = classifyActivity(act, seenActivityIds.current);
               if (res.kind === "bot-message") {
-                const report = parseReportReady(res.message.text);
-                if (report) {
-                  addReport(report);
-                  continue; // Don't show the raw JSON payload in the chat UI
+                if (res.message.text && res.message.text.startsWith("REPORT_READY|")) {
+                  const report = parseReportReady(res.message.text);
+                  if (report) {
+                    addReport(report);
+                  } else {
+                    console.warn(
+                      "[useCopilotAgent] Malformed REPORT_READY message:",
+                      res.message.text,
+                    );
+                  }
+                  continue; // Eat the sentinel text regardless so user doesn't see "REPORT_READY|..."
                 }
                 botMessages.push(res.message);
               }

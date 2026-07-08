@@ -16,26 +16,79 @@ export const Route = createFileRoute("/ussd")({
 type Screen = { title: string; lines: string[]; options?: Record<string, string> };
 
 const screens: Record<string, Screen> = {
-  start: { title: "Dial *130#", lines: ["Enter *130# and press Dial", "to simulate the offline", "USSD session."] },
+  start: {
+    title: "Dial *130#",
+    lines: ["Enter *130# and press Dial", "to simulate the offline", "USSD session."],
+  },
   root: {
     title: "WattWise *130#",
-    lines: ["Welcome, Casious", "", "1. Balance & units", "2. Current usage", "3. Power alerts", "4. Saving tips", "0. Exit"],
+    lines: [
+      "Welcome, Casious",
+      "",
+      "1. Balance & units",
+      "2. Current usage",
+      "3. Power alerts",
+      "4. Saving tips",
+      "0. Exit",
+    ],
     options: { "1": "balance", "2": "usage", "3": "alerts", "4": "tips", "0": "start" },
   },
-  balance: { title: "Balance & units", lines: ["Meter: NXM-001-TZN", "Remaining: 47.2 kWh", "Today's usage: 18.4 kWh", "Estimated cost: R 52.44", "", "0. Back to menu"], options: { "0": "root" } },
-  usage:   { title: "Current usage",  lines: ["Live: 1 982 W", "10s average: 1 956 W", "Today: 18.4 kWh", "", "0. Back to menu"], options: { "0": "root" } },
-  alerts:  { title: "Power alerts",   lines: ["Tamper status: OK ✓", "Load anomaly: none", "", "Load shedding:", "Stage 2 · Today 18:00", "Group 7 — Tzaneen N.", "", "0. Back to menu"], options: { "0": "root" } },
-  tips:    { title: "Saving tips",    lines: ["1. Switch geyser off", "   before bedtime", "2. Use cold water wash", "3. Unplug standby", "   appliances overnight", "", "0. Back to menu"], options: { "0": "root" } },
+  balance: {
+    title: "Balance & units",
+    lines: [
+      "Meter: NXM-001-TZN",
+      "Remaining: 47.2 kWh",
+      "Today's usage: 18.4 kWh",
+      "Estimated cost: R 52.44",
+      "",
+      "0. Back to menu",
+    ],
+    options: { "0": "root" },
+  },
+  usage: {
+    title: "Current usage",
+    lines: ["Live: 1 982 W", "10s average: 1 956 W", "Today: 18.4 kWh", "", "0. Back to menu"],
+    options: { "0": "root" },
+  },
+  alerts: {
+    title: "Power alerts",
+    lines: [
+      "Tamper status: OK ✓",
+      "Load anomaly: none",
+      "",
+      "Load shedding:",
+      "Stage 2 · Today 18:00",
+      "Group 7 — Tzaneen N.",
+      "",
+      "0. Back to menu",
+    ],
+    options: { "0": "root" },
+  },
+  tips: {
+    title: "Saving tips",
+    lines: [
+      "1. Switch geyser off",
+      "   before bedtime",
+      "2. Use cold water wash",
+      "3. Unplug standby",
+      "   appliances overnight",
+      "",
+      "0. Back to menu",
+    ],
+    options: { "0": "root" },
+  },
 };
 
 function USSD() {
   const [screen, setScreen] = useState<keyof typeof screens>("start");
-  const [input, setInput]   = useState("");
+  const [input, setInput] = useState("");
   const cur = screens[screen];
 
   const dial = () => {
-    if (input.trim() === "*130#") { setScreen("root"); setInput(""); }
-    else setInput("");
+    if (input.trim() === "*130#") {
+      setScreen("root");
+      setInput("");
+    } else setInput("");
   };
   const press = (n: string) => {
     const next = cur.options?.[n];
@@ -57,7 +110,9 @@ function USSD() {
                 {cur.title}
               </div>
               {cur.lines.map((l, i) => (
-                <div key={i} className="leading-relaxed">{l || " "}</div>
+                <div key={i} className="leading-relaxed">
+                  {l || " "}
+                </div>
               ))}
             </div>
 

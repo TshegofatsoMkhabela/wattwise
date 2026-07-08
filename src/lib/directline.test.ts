@@ -98,6 +98,8 @@ describe("parseReportReady", () => {
   it("returns null for non-report message", () => {
     expect(parseReportReady("Here is your report!")).toBeNull();
     expect(parseReportReady("REPORT_READY|invalid-json")).toBeNull();
+    expect(parseReportReady("")).toBeNull();
+    expect(parseReportReady(null as unknown as string)).toBeNull();
   });
 
   it("returns null if json is missing required fields", () => {
