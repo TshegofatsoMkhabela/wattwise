@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { addReport, type SavedReport } from "../store/reports";
 import { apiUrl } from "./api";
+import { getAgentContext, getRolePrefix } from "./user-context";
 
 /**
  * Minimal, dependency-free Direct Line 3.0 client for talking to a
@@ -263,6 +264,9 @@ export async function sendAgentTrigger(
   const conv = await getTriggerChannel();
   if (!conv) return { ok: false, reason: "no-conversation" };
   try {
+    const ctx = getAgentContext();
+    const prefix = getRolePrefix(ctx.role);
+
     const res = await fetch(`${DOMAIN}/conversations/${conv.id}/activities`, {
       method: "POST",
       headers: {
@@ -271,8 +275,11 @@ export async function sendAgentTrigger(
       },
       body: JSON.stringify({
         type: "message",
-        from: { id: "wattwise-app", role: "user" },
-        text,
+        from: { id: ctx.username || "wattwise-app", role: "user" },
+        text: `${prefix} ${text}`,
+        channelData: {
+          userContext: ctx,
+        },
         ...(value !== undefined ? { value } : {}),
         ...(attachments && attachments.length ? { attachments } : {}),
       }),
@@ -302,14 +309,15 @@ export async function sendReportTrigger(
   reportType: "consumption" | "tamper" | "loadshed",
   period?: string,
   format?: "pdf" | "csv",
-  requestedBy = "Thandi Mokoena",
+  requestedBy?: string,
 ): Promise<TriggerResult> {
+  const ctx = getAgentContext();
   return sendAgentTrigger("Generate report", {
     intent: "generate-report",
     reportType,
     period,
     format,
-    requestedBy,
+    requestedBy: requestedBy || ctx.username || "Unknown",
   });
 }
 
@@ -471,6 +479,9 @@ export function useCopilotAgent() {
       }, RESPONSE_TIMEOUT_MS);
 
       try {
+        const ctx = getAgentContext();
+        const prefix = getRolePrefix(ctx.role);
+
         const res = await fetch(`${DOMAIN}/conversations/${conv.id}/activities`, {
           method: "POST",
           headers: {
@@ -479,8 +490,11 @@ export function useCopilotAgent() {
           },
           body: JSON.stringify({
             type: "message",
-            from: { id: "user", role: "user" },
-            text: trimmed,
+            from: { id: ctx.username || "wattwise-user", role: "user" },
+            text: `${prefix} ${trimmed}`,
+            channelData: {
+              userContext: ctx,
+            },
           }),
         });
         if (!res.ok) throw new Error(`Send failed (${res.status})`);
