@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Reading } from "@/types";
+import { wsUrl } from "@/lib/api";
 
 /** Shape of the JSON the Python bridge broadcasts (bridge/predict.py build_live_message). */
 interface BridgeMessage {
@@ -105,12 +106,10 @@ if (typeof window !== "undefined") {
   // works on any host/port with zero config. Uses wss:// automatically over
   // HTTPS. Override only for raw dev (no proxy): ?ws=... or VITE_WS_URL.
   const params = new URLSearchParams(window.location.search);
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  const defaultWsUrl = `${proto}://${window.location.host}/api/live/ws`;
   const WS_URL =
     params.get("ws") ||
     (import.meta as { env?: Record<string, string> }).env?.VITE_WS_URL ||
-    defaultWsUrl;
+    wsUrl("/api/live/ws");
 
   // Synthetic fallback — only pushes while we are NOT on the real bridge.
   setInterval(() => {
