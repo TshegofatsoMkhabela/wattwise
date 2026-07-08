@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { addReport, type SavedReport } from "../store/reports";
 import { apiUrl } from "./api";
-import { getAgentContext, getRolePrefix } from "./user-context";
+import { getAgentContext, formatAgentMessageContext } from "./user-context";
 
 /**
  * Minimal, dependency-free Direct Line 3.0 client for talking to a
@@ -267,7 +267,7 @@ export async function sendAgentTrigger(
   if (!conv) return { ok: false, reason: "no-conversation" };
   try {
     const ctx = getAgentContext();
-    const prefix = getRolePrefix(ctx.role);
+    const prefix = formatAgentMessageContext(ctx);
 
     const res = await fetch(`${DOMAIN}/conversations/${conv.id}/activities`, {
       method: "POST",
@@ -278,7 +278,7 @@ export async function sendAgentTrigger(
       body: JSON.stringify({
         type: "message",
         from: { id: ctx.username || "wattwise-app", role: "user" },
-        text: `${prefix} ${text}`,
+        text: `${prefix}\n\n${text}`,
         channelData: {
           userContext: ctx,
         },
@@ -482,7 +482,7 @@ export function useCopilotAgent() {
 
       try {
         const ctx = getAgentContext();
-        const prefix = getRolePrefix(ctx.role);
+        const prefix = formatAgentMessageContext(ctx);
 
         const res = await fetch(`${DOMAIN}/conversations/${conv.id}/activities`, {
           method: "POST",
@@ -493,7 +493,7 @@ export function useCopilotAgent() {
           body: JSON.stringify({
             type: "message",
             from: { id: ctx.username || "wattwise-user", role: "user" },
-            text: `${prefix} ${trimmed}`,
+            text: `${prefix}\n\n${trimmed}`,
             channelData: {
               userContext: ctx,
             },

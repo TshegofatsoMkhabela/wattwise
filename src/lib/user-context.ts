@@ -18,9 +18,21 @@ export const ROLE_LABELS: Record<Role, string> = {
   technician: "Technician",
 };
 
-/** Human-readable bracket label prepended to every chat message. */
-export function getRolePrefix(role: Role): string {
-  return `[${ROLE_LABELS[role]}]`;
+/** 
+ * Formats a block of text prepended to every chat message containing
+ * the user's role and all identity variables from the environment/authStore.
+ */
+export function formatAgentMessageContext(ctx: UserIdentity): string {
+  const parts = [];
+  parts.push(`[${ROLE_LABELS[ctx.role]}]`);
+  if (ctx.username) parts.push(`Username: ${ctx.username}`);
+  if (ctx.email) parts.push(`Email: ${ctx.email}`);
+  if (ctx.mobile) parts.push(`Mobile: ${ctx.mobile}`);
+  if (ctx.consumerId) parts.push(`Consumer ID: ${ctx.consumerId}`);
+  if (ctx.meterNumber) parts.push(`Meter: ${ctx.meterNumber}`);
+  if (ctx.utilityAccount) parts.push(`Utility Account: ${ctx.utilityAccount}`);
+  
+  return parts.join(" | ");
 }
 
 /**

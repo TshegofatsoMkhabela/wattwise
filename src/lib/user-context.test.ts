@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { getRolePrefix, getAgentContext } from "./user-context";
+import { formatAgentMessageContext, getAgentContext } from "./user-context";
 import { useAuthStore } from "@/store/authStore";
 
 describe("user-context", () => {
@@ -8,10 +8,18 @@ describe("user-context", () => {
     useAuthStore.setState({ user: null });
   });
 
-  it("getRolePrefix returns correct label", () => {
-    expect(getRolePrefix("consumer")).toBe("[Consumer/Household]");
-    expect(getRolePrefix("municipality")).toBe("[Government/Municipality]");
-    expect(getRolePrefix("technician")).toBe("[Technician]");
+  it("formatAgentMessageContext returns correct label and info", () => {
+    const ctx = {
+      role: "consumer" as const,
+      roleLabel: "Consumer/Household",
+      email: "test@test.com",
+      username: "test",
+      mobile: "",
+      consumerId: "",
+      meterNumber: "",
+      utilityAccount: "",
+    };
+    expect(formatAgentMessageContext(ctx)).toBe("[Consumer/Household] | Username: test | Email: test@test.com");
   });
 
   it("getAgentContext falls back to env vars when store is empty", () => {
