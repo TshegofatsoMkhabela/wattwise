@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardTitle } from "@/components/ui/card-basic";
-import { FileText, Zap, Activity, Download } from "lucide-react";
+import { FileText, Zap, Activity, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSyncExternalStore, useState } from "react";
+import { getReports, subscribeReports } from "@/store/reports";
+import { sendReportTrigger, isDirectLineConfigured } from "@/lib/directline";
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Reports · WattWise" }] }),
@@ -29,32 +32,46 @@ const types = [
     title: "Tamper report",
     desc: "Illegal connection alerts, dispatches, and resolutions.",
     Icon: Zap,
-    files: [
-      { name: "Tamper_Q4_2025.pdf", fmt: "PDF" },
-    ],
+    files: [{ name: "Tamper_Q4_2025.pdf", fmt: "PDF" }],
   },
   {
     id: "loadshed",
     title: "Load-shedding impact",
     desc: "Downtime per area and affected consumers.",
     Icon: FileText,
-    files: [
-      { name: "Loadshed_2025-12.pdf", fmt: "PDF" },
-    ],
+    files: [{ name: "Loadshed_2025-12.pdf", fmt: "PDF" }],
   },
 ];
 
-const saved = [
-  { name: "Consumption_2025-12.csv", type: "Consumption",   date: "2026-01-03", by: "Thandi Mokoena" },
-  { name: "Tamper_Q4_2025.pdf",      type: "Tamper",        date: "2026-01-02", by: "Thandi Mokoena" },
-  { name: "Loadshed_2025-12.pdf",    type: "Load-shedding", date: "2025-12-31", by: "System" },
-];
-
 function Reports() {
+  const saved = useSyncExternalStore(subscribeReports, getReports);
+  const [generating, setGenerating] = useState<Record<string, boolean>>({});
+
+  const handleGenerate = async (id: "consumption" | "tamper" | "loadshed") => {
+    if (!isDirectLineConfigured) {
+      toast.error("Connect the assistant first in .env.local");
+      return;
+    }
+    setGenerating((prev) => ({ ...prev, [id]: true }));
+    const res = await sendReportTrigger(id);
+    if (res.ok) {
+      toast.success("Report request sent to assistant");
+    } else {
+      toast.error("Failed to request report");
+    }
+    setGenerating((prev) => ({ ...prev, [id]: false }));
+  };
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-3 gap-4">
-        {types.map((t) => <ReportCard key={t.id} t={t} />)}
+        {types.map((t) => (
+          <ReportCard
+            key={t.id}
+            t={t}
+            generating={generating[t.id]}
+            onGenerate={() => handleGenerate(t.id as "consumption" | "tamper" | "loadshed")}
+          />
+        ))}
       </div>
 
       <Card>
@@ -82,7 +99,8 @@ function Reports() {
                       onClick={() => toast.success(`Downloading ${r.name}…`)}
                       className="text-[#005EB8] hover:underline inline-flex items-center gap-1"
                     >
-                      <Download className="w-3 h-3" />Download
+                      <Download className="w-3 h-3" />
+                      Download
                     </button>
                   </td>
                 </tr>
@@ -95,10 +113,28 @@ function Reports() {
   );
 }
 
-function ReportCard({ t }: { t: typeof types[number] }) {
+function ReportCard({
+  t,
+  generating,
+  onGenerate,
+}: {
+  t: (typeof types)[number];
+  generating?: boolean;
+  onGenerate?: () => void;
+}) {
   return (
     <Card>
-      <t.Icon className="w-5 h-5 text-[#005EB8] mb-2" />
+      <div className="flex items-start justify-between mb-2">
+        <t.Icon className="w-5 h-5 text-[#005EB8]" />
+        <button
+          onClick={onGenerate}
+          disabled={generating}
+          className="text-xs font-semibold text-[#005EB8] hover:text-[#003F8A] bg-[#EBF5FF] hover:bg-blue-100 rounded-full px-3 py-1 transition-colors disabled:opacity-50 disabled:pointer-events-none inline-flex items-center gap-1.5"
+        >
+          {generating && <Loader2 className="w-3 h-3 animate-spin" />}
+          {generating ? "Generating…" : "Generate"}
+        </button>
+      </div>
       <div className="font-semibold text-slate-900">{t.title}</div>
       <div className="text-xs text-slate-400 mt-1 mb-4 leading-relaxed">{t.desc}</div>
       <div className="space-y-2">
@@ -110,7 +146,8 @@ function ReportCard({ t }: { t: typeof types[number] }) {
           >
             <span className="font-mono truncate">{f.name}</span>
             <span className="flex items-center gap-1 font-semibold flex-shrink-0 text-[#005EB8]">
-              <Download className="w-3.5 h-3.5" />{f.fmt}
+              <Download className="w-3.5 h-3.5" />
+              {f.fmt}
             </span>
           </button>
         ))}

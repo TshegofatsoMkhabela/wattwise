@@ -3,7 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PromptInput } from "@/components/ui/ai-chat-input";
 import { useCopilotAgent, waitLabel, type AgentStatus, type ChatMessage } from "@/lib/directline";
-import { Sparkles, Zap, ShoppingCart, Lightbulb, AlertTriangle } from "lucide-react";
+import {
+  Sparkles,
+  Zap,
+  ShoppingCart,
+  Lightbulb,
+  AlertTriangle,
+  FileText,
+  BarChart,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/assistant")({
@@ -31,6 +39,21 @@ const SUGGESTIONS = [
     icon: AlertTriangle,
     label: "Report a fault",
     prompt: "I want to report a fault with my meter.",
+  },
+  {
+    icon: FileText,
+    label: "Generate consumption report",
+    prompt: "Generate a consumption report for last month.",
+  },
+  {
+    icon: Zap,
+    label: "Generate tamper report",
+    prompt: "Generate a tamper report for Q4 2025.",
+  },
+  {
+    icon: BarChart,
+    label: "Load-shedding report",
+    prompt: "Generate a load-shedding impact report for December.",
   },
 ];
 

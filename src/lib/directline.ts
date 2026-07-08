@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { addReport, type SavedReport } from "../store/reports";
 import { apiUrl } from "./api";
 
 /**
@@ -235,6 +236,34 @@ export async function sendAgentTrigger(
   }
 }
 
+export function parseReportReady(text: string): SavedReport | null {
+  if (!text || !text.startsWith("REPORT_READY|")) return null;
+  try {
+    const jsonStr = text.substring("REPORT_READY|".length);
+    const parsed = JSON.parse(jsonStr);
+    if (parsed && typeof parsed.name === "string" && typeof parsed.type === "string") {
+      return parsed as SavedReport;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function sendReportTrigger(
+  reportType: "consumption" | "tamper" | "loadshed",
+  period?: string,
+  format?: "pdf" | "csv",
+): Promise<TriggerResult> {
+  return sendAgentTrigger("Generate report", {
+    intent: "generate-report",
+    reportType,
+    period,
+    format,
+    requestedBy: "Thandi Mokoena",
+  });
+}
+
 /**
  * React hook that manages a live Direct Line conversation with the agent.
  */
@@ -299,7 +328,14 @@ export function useCopilotAgent() {
 
             for (const act of payload.activities ?? []) {
               const res = classifyActivity(act, seenActivityIds.current);
-              if (res.kind === "bot-message") botMessages.push(res.message);
+              if (res.kind === "bot-message") {
+                const report = parseReportReady(res.message.text);
+                if (report) {
+                  addReport(report);
+                  continue; // Don't show the raw JSON payload in the chat UI
+                }
+                botMessages.push(res.message);
+              }
               // `typing` is the agent's ~4s liveness heartbeat. We already show a
               // waiting state via awaitingReply, and we deliberately do NOT extend
               // the absolute timeout on it — a stuck intent keeps typing forever.

@@ -4,6 +4,7 @@ import {
   waitLabel,
   isResponseTimedOut,
   RESPONSE_TIMEOUT_MS,
+  parseReportReady,
   type DirectLineActivity,
 } from "./directline";
 
@@ -82,5 +83,25 @@ describe("isResponseTimedOut", () => {
   });
   it("uses a 45s threshold", () => {
     expect(RESPONSE_TIMEOUT_MS).toBe(45_000);
+  });
+});
+
+describe("parseReportReady", () => {
+  it("parses valid REPORT_READY sentinel", () => {
+    const raw = `REPORT_READY|{"name":"Consumption_2025-12.csv","type":"Consumption","date":"2026-01-03","by":"Thandi Mokoena"}`;
+    const report = parseReportReady(raw);
+    expect(report).not.toBeNull();
+    expect(report?.name).toBe("Consumption_2025-12.csv");
+    expect(report?.type).toBe("Consumption");
+  });
+
+  it("returns null for non-report message", () => {
+    expect(parseReportReady("Here is your report!")).toBeNull();
+    expect(parseReportReady("REPORT_READY|invalid-json")).toBeNull();
+  });
+
+  it("returns null if json is missing required fields", () => {
+    const raw = `REPORT_READY|{"date":"2026-01-03"}`;
+    expect(parseReportReady(raw)).toBeNull();
   });
 });
