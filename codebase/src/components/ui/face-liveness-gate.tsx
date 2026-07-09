@@ -2,15 +2,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { FaceLandmarker } from "@mediapipe/tasks-vision";
 import { ScanFace, Loader2, X, KeyRound, Check, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { loadFaceLandmarker } from "@/lib/face-landmarker";
 import {
-  advanceLiveness,
+  loadFaceLandmarker,
+  getFaceDelegate,
+  hasWebGL2,
+  WEBGL2_UNAVAILABLE,
+} from "@/lib/face-landmarker";
+import {
   estimateYaw,
-  initLiveness,
-  liveProgress,
-  FACE_STEP_LABEL,
-  type FaceStep,
-  type LivenessState,
+  faceCenterOffset,
+  gestureProgress,
+  isCentered,
+  GESTURES,
+  GESTURE_LABEL,
+  type Gesture,
+  type Landmark,
 } from "@/lib/face-liveness";
 
 type Phase = "loading" | "ready" | "success" | "error";
@@ -18,14 +24,19 @@ type Phase = "loading" | "ready" | "success" | "error";
 // Ring geometry.
 const SIZE = 260;
 const RADIUS = 118;
-const STROKE = 6;
+const STROKE = 7;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const CAMERA = SIZE - 30;
+
+// Temporary on-screen diagnostics for the face detection. Flip off once tuned.
+const DEBUG = true;
 
 /**
- * Municipality face-login step: a "look straight → turn left → turn right" liveness
- * gesture driven by real in-browser MediaPipe head-pose detection, with a circular
- * progress ring around the live camera. Honest framing: a *demo* presence check, with
- * a password fallback so a lighting hiccup never blocks sign-in.
+ * Municipality face-login step: a "center your face → turn left → turn right" liveness
+ * gesture driven by real in-browser MediaPipe head-pose detection. A granular, ratcheting
+ * ring fills as each gesture completes, a live landmark mesh is drawn over the face, and a
+ * success flourish plays on completion. Honest framing: a *demo* presence check, with a
+ * password fallback so a lighting hiccup never blocks sign-in.
  */
 export function FaceLivenessGate({
   onSuccess,
@@ -38,16 +49,31 @@ export function FaceLivenessGate({
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [step, setStep] = useState<FaceStep>("center");
   const [progress, setProgress] = useState(0);
+  const [gesture, setGesture] = useState<Gesture | "done">("center");
   const [faceVisible, setFaceVisible] = useState(false);
+  const [centered, setCentered] = useState(false);
   const [struggling, setStruggling] = useState(false);
+  const [dbg, setDbg] = useState({
+    face: false,
+    yaw: 0,
+    offset: 0,
+    hold: 0,
+    err: null as string | null,
+  });
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
   const rafRef = useRef<number | null>(null);
-  const stateRef = useRef<LivenessState>(initLiveness());
+
+  // Temporal detection state (kept in refs so the rAF loop reads fresh values).
+  const gestureIndexRef = useRef(0);
+  const firstTurnSignRef = useRef<-1 | 0 | 1>(0);
+  const holdMsRef = useRef(0);
+  const lastTsRef = useRef<number | null>(null);
+  const progressRef = useRef(0); // ratcheted: only ever grows, for a smooth ring
   const lastVideoTimeRef = useRef(-1);
   const doneRef = useRef(false);
 
@@ -71,18 +97,44 @@ export function FaceLivenessGate({
   useEffect(() => {
     let cancelled = false;
 
+    const drawOverlay = (landmarks: readonly Landmark[]) => {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      if (!canvas || !video) return;
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+      const g = canvas.getContext("2d");
+      if (!g) return;
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      g.fillStyle = "rgba(0, 94, 184, 0.5)";
+      for (const p of landmarks) {
+        g.beginPath();
+        g.arc(p.x * canvas.width, p.y * canvas.height, 1.3, 0, Math.PI * 2);
+        g.fill();
+      }
+    };
+
+    const clearOverlay = () => {
+      const canvas = canvasRef.current;
+      const g = canvas?.getContext("2d");
+      if (canvas && g) g.clearRect(0, 0, canvas.width, canvas.height);
+    };
+
     const finish = () => {
       if (doneRef.current) return;
       doneRef.current = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      setStep("done");
+      clearOverlay();
+      setGesture("done");
       setProgress(1);
       setPhase("success");
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       window.setTimeout(() => {
         if (!cancelled) onSuccess();
-      }, 750);
+      }, 1100);
     };
 
     const loop = () => {
@@ -92,27 +144,72 @@ export function FaceLivenessGate({
         rafRef.current = requestAnimationFrame(loop);
         return;
       }
+
+      const now = performance.now();
+      const dt = lastTsRef.current == null ? 16 : now - lastTsRef.current;
+      lastTsRef.current = now;
+
       // Only run detection on a fresh frame (MediaPipe needs increasing timestamps).
       if (video.currentTime !== lastVideoTimeRef.current) {
         lastVideoTimeRef.current = video.currentTime;
-        const result = lm.detectForVideo(video, performance.now());
-        const landmarks = result.faceLandmarks?.[0];
+
+        // A single thrown frame must not kill the loop — catch, log, keep going.
+        let landmarks: readonly Landmark[] | undefined;
+        try {
+          landmarks = lm.detectForVideo(video, now).faceLandmarks?.[0];
+        } catch (err) {
+          const msg = (err as Error)?.message ?? String(err);
+          console.error("[FaceGate] detectForVideo failed:", err);
+          if (DEBUG) setDbg((d) => ({ ...d, face: false, err: msg }));
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+
         if (landmarks && landmarks.length) {
           setFaceVisible(true);
-          const yaw = estimateYaw(landmarks);
-          if (yaw != null) {
-            const prev = stateRef.current;
-            const next = advanceLiveness(prev, yaw);
-            stateRef.current = next;
-            setStep(next.step);
-            setProgress(liveProgress(next, yaw));
-            if (next.step === "done" && prev.step !== "done") {
+          drawOverlay(landmarks);
+
+          const yaw = estimateYaw(landmarks) ?? 0;
+          const offset = faceCenterOffset(landmarks) ?? 1;
+          if (DEBUG) setDbg({ face: true, yaw, offset, hold: holdMsRef.current, err: null });
+          const idx = gestureIndexRef.current;
+          const current = GESTURES[idx];
+
+          const centredNow = isCentered({ yaw, offset });
+          setCentered(centredNow);
+          if (current === "center") {
+            holdMsRef.current = centredNow ? holdMsRef.current + dt : 0;
+          }
+
+          const local = gestureProgress(
+            current,
+            { yaw, offset, holdMs: holdMsRef.current },
+            firstTurnSignRef.current,
+          );
+
+          // Ratcheted overall progress: base for completed gestures + this one's fraction.
+          const base = idx / GESTURES.length;
+          const candidate = base + local / GESTURES.length;
+          if (candidate > progressRef.current + 0.002) {
+            progressRef.current = candidate;
+            setProgress(candidate);
+          }
+
+          if (local >= 1) {
+            if (current === "left") firstTurnSignRef.current = yaw < 0 ? -1 : 1;
+            gestureIndexRef.current = idx + 1;
+            holdMsRef.current = 0;
+            if (gestureIndexRef.current >= GESTURES.length) {
               finish();
               return;
             }
+            setGesture(GESTURES[gestureIndexRef.current]);
           }
         } else {
           setFaceVisible(false);
+          holdMsRef.current = 0; // lose the centre hold if the face leaves the frame
+          clearOverlay();
+          if (DEBUG) setDbg((d) => ({ ...d, face: false }));
         }
       }
       rafRef.current = requestAnimationFrame(loop);
@@ -158,12 +255,18 @@ export function FaceLivenessGate({
         const lm = await loadFaceLandmarker();
         if (cancelled) return;
         landmarkerRef.current = lm;
-      } catch {
-        setErrorMsg("Couldn't load the face model. Check your connection, or use your password.");
+      } catch (e) {
+        const msg = (e as Error)?.message;
+        setErrorMsg(
+          msg === WEBGL2_UNAVAILABLE
+            ? "Your browser can't use WebGL. Turn on hardware acceleration (browser Settings → System), then reload — or use your password."
+            : "Couldn't start face detection on this device. Use your password to sign in.",
+        );
         setPhase("error");
         return;
       }
 
+      lastTsRef.current = null;
       setPhase("ready");
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -202,9 +305,11 @@ export function FaceLivenessGate({
       ? "Face check unavailable"
       : phase === "loading"
         ? "Downloading face model… (first load only)"
-        : !faceVisible && !isDone
+        : !faceVisible
           ? "Center your face in the circle"
-          : FACE_STEP_LABEL[step];
+          : gesture === "center" && !centered
+            ? "Move your face into the middle"
+            : GESTURE_LABEL[gesture];
 
   return (
     <div
@@ -270,18 +375,22 @@ export function FaceLivenessGate({
                   strokeLinecap="round"
                   strokeDasharray={CIRCUMFERENCE}
                   strokeDashoffset={dashoffset}
-                  style={{ transition: "stroke-dashoffset 0.15s ease-out, stroke 0.3s ease" }}
+                  style={{
+                    transition: isDone
+                      ? "stroke-dashoffset 0.5s cubic-bezier(0.22,1,0.36,1), stroke 0.3s ease"
+                      : "stroke-dashoffset 0.12s linear, stroke 0.3s ease",
+                  }}
                 />
               </svg>
 
-              {/* Circular camera */}
+              {/* Circular camera + live landmark overlay */}
               <div className="absolute inset-0 grid place-items-center">
                 <div
                   className={cn(
-                    "rounded-full overflow-hidden bg-slate-900 grid place-items-center transition-shadow",
-                    isDone && "ring-4 ring-emerald-400/40",
+                    "relative rounded-full overflow-hidden bg-slate-900 transition-all duration-500",
+                    isDone && "ring-4 ring-emerald-400/50",
                   )}
-                  style={{ width: SIZE - 28, height: SIZE - 28 }}
+                  style={{ width: CAMERA, height: CAMERA }}
                 >
                   <video
                     ref={videoRef}
@@ -289,23 +398,45 @@ export function FaceLivenessGate({
                     playsInline
                     muted
                     className={cn(
-                      "w-full h-full object-cover -scale-x-100",
+                      "w-full h-full object-cover -scale-x-100 transition-all duration-500",
                       phase === "loading" && "opacity-0",
+                      isDone && "brightness-90 saturate-125",
+                    )}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    className={cn(
+                      "absolute inset-0 w-full h-full object-cover -scale-x-100 pointer-events-none transition-opacity duration-300",
+                      isDone ? "opacity-0" : "opacity-100",
+                    )}
+                  />
+                  {/* Green wash on success */}
+                  <div
+                    className={cn(
+                      "absolute inset-0 bg-emerald-500/25 transition-opacity duration-500",
+                      isDone ? "opacity-100" : "opacity-0",
                     )}
                   />
                 </div>
               </div>
 
-              {/* Loading / success overlays */}
+              {/* Loading overlay */}
               {phase === "loading" && (
                 <div className="absolute inset-0 grid place-items-center">
                   <Loader2 className="w-7 h-7 text-[#005EB8] animate-spin" />
                 </div>
               )}
+
+              {/* Success flourish */}
               {isDone && (
                 <div className="absolute inset-0 grid place-items-center">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500 grid place-items-center shadow-lg animate-in zoom-in-90 duration-300">
-                    <Check className="w-8 h-8 text-white" strokeWidth={3} />
+                  <span className="absolute w-24 h-24 rounded-full bg-emerald-400/30 animate-ping" />
+                  <span
+                    className="absolute w-16 h-16 rounded-full bg-emerald-400/40 animate-ping"
+                    style={{ animationDelay: "160ms" }}
+                  />
+                  <div className="relative w-20 h-20 rounded-full bg-emerald-500 grid place-items-center shadow-xl animate-in zoom-in-50 fade-in duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]">
+                    <Check className="w-10 h-10 text-white" strokeWidth={3} />
                   </div>
                 </div>
               )}
@@ -315,7 +446,7 @@ export function FaceLivenessGate({
           {/* Instruction */}
           <p
             className={cn(
-              "mt-5 text-sm font-semibold text-center",
+              "mt-5 text-sm font-semibold text-center transition-colors",
               isDone ? "text-emerald-600" : "text-slate-800",
             )}
             aria-live="assertive"
@@ -325,6 +456,23 @@ export function FaceLivenessGate({
           <p className="mt-1 text-[11px] text-slate-400 text-center">
             Demo liveness check — not used for identification.
           </p>
+
+          {DEBUG && phase !== "error" && (
+            <div className="mt-3 w-full rounded-md bg-slate-900 text-slate-100 text-[10px] font-mono px-2 py-1.5 leading-relaxed">
+              <div>
+                phase: {phase} · model: {getFaceDelegate() ?? "loading"} · webgl2:{" "}
+                {hasWebGL2() ? "yes" : "NO"}
+              </div>
+              <div>
+                face: {dbg.face ? "YES" : "no"} · yaw: {dbg.yaw.toFixed(2)} · off:{" "}
+                {dbg.offset.toFixed(2)} · hold: {Math.round(dbg.hold)}ms
+              </div>
+              <div>
+                gesture: {gesture} · progress: {(progress * 100).toFixed(0)}%
+                {dbg.err ? ` · ERR: ${dbg.err}` : ""}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer / fallbacks */}

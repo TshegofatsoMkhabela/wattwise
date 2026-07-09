@@ -9,6 +9,25 @@ const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 
 let landmarkerPromise: Promise<FaceLandmarkerType> | null = null;
+let loadedDelegate: "GPU" | "CPU" | null = null;
+
+/** Which compute delegate the loaded model is using (for diagnostics). */
+export function getFaceDelegate(): "GPU" | "CPU" | null {
+  return loadedDelegate;
+}
+
+/** True when the browser can create a WebGL2 context — MediaPipe needs it. */
+export function hasWebGL2(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    return !!document.createElement("canvas").getContext("webgl2");
+  } catch {
+    return false;
+  }
+}
+
+/** Thrown (as message) when WebGL2 is unavailable, so the UI can guide the user. */
+export const WEBGL2_UNAVAILABLE = "WEBGL2_UNAVAILABLE";
 
 /**
  * Returns a shared FaceLandmarker instance, creating it on first call. The promise is
@@ -30,6 +49,12 @@ export function loadFaceLandmarker(): Promise<FaceLandmarkerType> {
 }
 
 async function createLandmarker(): Promise<FaceLandmarkerType> {
+  // FaceLandmarker's video pipeline needs WebGL2 even under the CPU delegate, so a
+  // CPU fallback is pointless here — fail early with a message the UI can act on.
+  if (!hasWebGL2()) {
+    throw new Error(WEBGL2_UNAVAILABLE);
+  }
+
   const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
 
   const filesetPromise = FilesetResolver.forVisionTasks(WASM_CDN);
@@ -39,21 +64,15 @@ async function createLandmarker(): Promise<FaceLandmarkerType> {
 
   const fileset = await Promise.race([filesetPromise, timeoutPromise]);
 
-  const build = (delegate: "GPU" | "CPU") =>
-    FaceLandmarker.createFromOptions(fileset, {
-      baseOptions: { modelAssetPath: MODEL_URL, delegate },
-      runningMode: "VIDEO",
-      numFaces: 1,
-      outputFaceBlendshapes: false,
-      outputFacialTransformationMatrixes: false,
-    });
-
-  // Prefer the GPU (WebGL) delegate; fall back to CPU on machines without it.
-  try {
-    return await build("GPU");
-  } catch {
-    return await build("CPU");
-  }
+  const lm = await FaceLandmarker.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
+    runningMode: "VIDEO",
+    numFaces: 1,
+    outputFaceBlendshapes: false,
+    outputFacialTransformationMatrixes: false,
+  });
+  loadedDelegate = "GPU";
+  return lm;
 }
 
 /** Fire-and-forget prewarm — e.g. when the municipality role is selected on the login form. */

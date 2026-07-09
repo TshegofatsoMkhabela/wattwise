@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Home, Building2, Wrench, Zap, ChevronRight } from "lucide-react";
+import { Home, Building2, Wrench, Zap, ChevronRight, ScanFace } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { FaceLivenessGate } from "@/components/ui/face-liveness-gate";
 import { prewarmFaceLandmarker } from "@/lib/face-landmarker";
@@ -140,6 +140,13 @@ function LoginPage() {
               })}
             </div>
           </div>
+
+          {role === "municipality" && (
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-[#005EB8] bg-[#EBF5FF] rounded-lg px-2.5 py-2">
+              <ScanFace className="w-3.5 h-3.5 flex-shrink-0" /> A quick face check runs after you
+              sign in.
+            </p>
+          )}
 
           {/* Submit */}
           <button
