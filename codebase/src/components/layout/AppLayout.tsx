@@ -189,17 +189,17 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
       <aside className="hidden md:flex w-60 flex-col bg-white border-r border-slate-100 fixed inset-y-0 left-0 z-30 shadow-sm">
         {/* Brand */}
         <div className="px-5 py-5 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
             <div className="w-8 h-8 rounded-lg bg-[#005EB8] grid place-items-center">
               <Zap className="w-4 h-4 text-white" />
             </div>
             <div>
-              <div className="text-sm font-bold text-slate-900 tracking-tight">WattWise</div>
+              <div className="text-sm font-bold text-slate-900 tracking-tight">GridWise</div>
               <div className="text-[10px] uppercase tracking-widest text-slate-400">
                 Energy Gateway
               </div>
             </div>
-          </div>
+          </Link>
           <div
             className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${roleBadgeColor[user.role]}`}
           >
@@ -278,12 +278,12 @@ export function AppLayout({ children, title }: { children: ReactNode; title: str
         }`}
       >
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
             <div className="w-7 h-7 rounded-lg bg-[#005EB8] grid place-items-center">
               <Zap className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-bold text-slate-900 text-sm">WattWise</span>
-          </div>
+            <span className="font-bold text-slate-900 text-sm">GridWise</span>
+          </Link>
           <button
             onClick={() => setMobileNavOpen(false)}
             className="text-slate-400 hover:text-slate-700"

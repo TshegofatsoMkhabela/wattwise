@@ -9,7 +9,7 @@ import { DispatchModal } from "@/components/ui/dispatch-modal";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 export const Route = createFileRoute("/alerts")({
-  head: () => ({ meta: [{ title: "Alerts · WattWise" }] }),
+  head: () => ({ meta: [{ title: "Alerts · GridWise" }] }),
   component: () => (
     <AppLayout title="Alerts Centre">
       <AlertsCentre />

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { User as UserIcon, Cpu, Bell } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [{ title: "Settings · WattWise" }] }),
+  head: () => ({ meta: [{ title: "Settings · GridWise" }] }),
   component: () => (
     <AppLayout title="Settings">
       <SettingsPage />

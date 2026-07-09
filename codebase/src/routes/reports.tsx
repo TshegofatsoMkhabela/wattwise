@@ -8,7 +8,7 @@ import { getReports, subscribeReports } from "@/store/reports";
 import { sendReportTrigger, isDirectLineConfigured } from "@/lib/directline";
 
 export const Route = createFileRoute("/reports")({
-  head: () => ({ meta: [{ title: "Reports · WattWise" }] }),
+  head: () => ({ meta: [{ title: "Reports · GridWise" }] }),
   component: () => (
     <AppLayout title="Reports">
       <Reports />

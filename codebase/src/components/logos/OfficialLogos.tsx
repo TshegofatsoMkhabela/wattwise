@@ -1,4 +1,4 @@
-/** Blue-and-white official partner logos for WattWise */
+/** Blue-and-white official partner logos for GridWise */
 
 export function EskomLogo({ className }: { className?: string }) {
   return (

@@ -258,7 +258,7 @@ function formatResponse(result: MockResult) {
 User request received
 -> Orchestrator selected ${result.agentUsed}
 -> ${result.agentUsed} handled ${result.taskCategory}
--> Result returned to WattWise
+-> Result returned to GridWise
 
 **${result.title}**
 ${result.summary}

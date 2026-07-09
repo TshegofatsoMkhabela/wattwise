@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText("My Energy Dashboard")).toBeVisible();
 });
 
-test("consumer dashboard keeps the WattWise demo controls visible", async ({ page }) => {
+test("consumer dashboard keeps the GridWise demo controls visible", async ({ page }) => {
   await expect(page.getByText("My Energy Dashboard")).toBeVisible();
   await expect(page.getByText("Demo Simulator")).toBeVisible();
   await expect(page.getByRole("button", { name: /high/i })).toBeVisible();

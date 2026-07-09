@@ -13,7 +13,7 @@ import { sendAgentTrigger } from "@/lib/directline";
 import { WebcamCapture, type CapturedPhoto } from "@/components/ui/webcam-capture";
 
 export const Route = createFileRoute("/technician")({
-  head: () => ({ meta: [{ title: "My Jobs · WattWise" }] }),
+  head: () => ({ meta: [{ title: "My Jobs · GridWise" }] }),
   component: () => (
     <AppLayout title="Field Technician Workspace">
       <Technician />

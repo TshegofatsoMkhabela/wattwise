@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { MeterNetworkMap } from "@/components/maps/MeterNetworkMap";
 
 export const Route = createFileRoute("/municipality")({
-  head: () => ({ meta: [{ title: "Network · WattWise" }] }),
+  head: () => ({ meta: [{ title: "Network · GridWise" }] }),
   component: () => (
     <AppLayout title="Municipality Network Overview">
       <Municipality />

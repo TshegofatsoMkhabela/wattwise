@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Home, Building2, Wrench, Zap, ChevronRight, ScanFace } from "lucide-react";
@@ -8,7 +8,7 @@ import { prewarmFaceLandmarker } from "@/lib/face-landmarker";
 import type { Role } from "@/types";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in · WattWise" }] }),
+  head: () => ({ meta: [{ title: "Sign in · GridWise" }] }),
   component: LoginPage,
 });
 
@@ -24,7 +24,7 @@ const roles: { id: Role; label: string; desc: string; Icon: typeof Home }[] = [
 ];
 
 function LoginPage() {
-  const [email, setEmail] = useState("casious@wattwise.co.za");
+  const [email, setEmail] = useState("casious@gridwise.co.za");
   const [password, setPassword] = useState("password");
   const [role, setRole] = useState<Role>("consumer");
   const [faceGate, setFaceGate] = useState(false);
@@ -63,17 +63,17 @@ function LoginPage() {
       {/* Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-blue-100 border border-blue-50 overflow-hidden">
         {/* Blue top stripe */}
-        <div className="bg-[#003F8A] px-8 py-6 flex items-center gap-3">
+        <Link to="/" className="bg-[#003F8A] px-8 py-6 flex items-center gap-3 hover:bg-[#003377] transition-colors group block">
           <div className="w-9 h-9 rounded-xl bg-white/10 grid place-items-center">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="text-white font-bold text-lg leading-tight">WattWise</div>
+            <div className="text-white font-bold text-lg leading-tight group-hover:text-blue-50 transition-colors">GridWise</div>
             <div className="text-blue-200 text-[11px] uppercase tracking-widest leading-tight">
               Energy Gateway
             </div>
           </div>
-        </div>
+        </Link>
 
         <form onSubmit={submit} className="px-8 py-7 space-y-5">
           <div>
@@ -157,7 +157,7 @@ function LoginPage() {
           </button>
 
           <p className="text-[10.5px] text-slate-400 text-center leading-relaxed">
-            By signing in you accept the WattWise data-use policy and consent to telemetry being
+            By signing in you accept the GridWise data-use policy and consent to telemetry being
             shared with your local municipality.
           </p>
         </form>

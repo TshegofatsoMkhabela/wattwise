@@ -79,13 +79,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "WattWise" },
+      { title: "GridWise" },
       {
         name: "description",
         content:
           "Smart electricity monitoring and civic reporting for South African households and municipalities.",
       },
-      { property: "og:title", content: "WattWise" },
+      { property: "og:title", content: "GridWise" },
       {
         property: "og:description",
         content:

@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/assistant")({
-  head: () => ({ meta: [{ title: "Assistant · WattWise" }] }),
+  head: () => ({ meta: [{ title: "Assistant · GridWise" }] }),
   component: () => (
     <AppLayout title="Energy Assistant">
       <AssistantChat />
@@ -103,7 +103,7 @@ function AssistantChat() {
             <Sparkles className="w-4.5 h-4.5 text-white" />
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-bold text-slate-900 truncate">WattWise Assistant</div>
+            <div className="text-sm font-bold text-slate-900 truncate">GridWise Assistant</div>
             <div className="text-[11px] text-slate-400 truncate">
               {isMockAgentMode ? "Demo orchestrator agents" : "Powered by Copilot Studio"}
             </div>

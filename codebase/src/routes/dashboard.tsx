@@ -12,7 +12,7 @@ import { evaluateHighUsageAlert, type HighUsageAlertState } from "@/lib/high-usa
 import { apiUrl } from "@/lib/api";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard · WattWise" }] }),
+  head: () => ({ meta: [{ title: "Dashboard · GridWise" }] }),
   component: () => (
     <AppLayout title="My Energy Dashboard">
       <ConsumerDashboard />
@@ -92,7 +92,7 @@ async function triggerHighUsageAgentAlert(watts: number) {
     const household = profileResponse.ok ? await profileResponse.json() : null;
     const payload = {
       eventType: "household_high_usage_alert",
-      source: "wattwise-frontend-demo",
+      source: "GridWise-frontend-demo",
       detectedAt: new Date().toISOString(),
       currentWatts: Math.round(watts),
       thresholdWatts: 1500,

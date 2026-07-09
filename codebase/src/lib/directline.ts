@@ -281,7 +281,7 @@ export async function sendAgentTrigger(
       },
       body: JSON.stringify({
         type: "message",
-        from: { id: ctx.username || "wattwise-app", role: "user" },
+        from: { id: ctx.username || "GridWise-app", role: "user" },
         text: `${prefix}\n\n${text}`,
         channelData: {
           userContext: ctx,
@@ -529,7 +529,7 @@ export function useCopilotAgent() {
           },
           body: JSON.stringify({
             type: "message",
-            from: { id: ctx.username || "wattwise-user", role: "user" },
+            from: { id: ctx.username || "GridWise-user", role: "user" },
             text: `${prefix}\n\n${trimmed}`,
             channelData: {
               userContext: ctx,

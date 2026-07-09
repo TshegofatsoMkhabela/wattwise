@@ -17,7 +17,7 @@ import partner2 from "@/assets/partner2.png";
 import partner4 from "@/assets/partner4.png";
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [{ title: "WattWise — Smart Energy Gateway" }] }),
+  head: () => ({ meta: [{ title: "GridWise — Smart Energy Gateway" }] }),
   component: LandingOrRedirect,
 });
 
@@ -62,7 +62,7 @@ function Navbar() {
           <div className="w-8 h-8 rounded-lg bg-gov-blue grid place-items-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-slate-900 tracking-tight">WattWise</span>
+          <span className="font-bold text-slate-900 tracking-tight">GridWise</span>
         </div>
         <nav className="hidden sm:flex items-center gap-6 text-sm text-slate-600">
           <a href="#how-it-works" className="hover:text-gov-blue transition-colors">
@@ -216,7 +216,7 @@ function Problems() {
     {
       Icon: Zap,
       title: "Load shedding disrupts lives",
-      body: "South Africans face up to 12 hours of outages per day. WattWise gives you a live countdown and appliance checklist so you're never caught off-guard.",
+      body: "South Africans face up to 12 hours of outages per day. GridWise gives you a live countdown and appliance checklist so you're never caught off-guard.",
     },
     {
       Icon: Shield,
@@ -226,7 +226,7 @@ function Problems() {
     {
       Icon: TrendingDown,
       title: "Billing disputes are invisible",
-      body: "Households can't see their consumption pattern in real-time. WattWise gives every household a live dashboard, USSD access, and transparent usage history.",
+      body: "Households can't see their consumption pattern in real-time. GridWise gives every household a live dashboard, USSD access, and transparent usage history.",
     },
   ];
   return (
@@ -237,7 +237,7 @@ function Problems() {
             South Africa's energy challenges — solved
           </h2>
           <p className="mt-3 text-slate-500 max-w-xl mx-auto">
-            WattWise was built specifically for the realities of the South African grid.
+            GridWise was built specifically for the realities of the South African grid.
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
@@ -372,7 +372,7 @@ function HowItWorks() {
     {
       n: "02",
       title: "Data streams in real-time",
-      body: "Wattage, voltage, tamper events, and anomalies are pushed every second to the WattWise platform. Your municipality sees it all — simultaneously.",
+      body: "Wattage, voltage, tamper events, and anomalies are pushed every second to the GridWise platform. Your municipality sees it all — simultaneously.",
     },
     {
       n: "03",
@@ -384,7 +384,7 @@ function HowItWorks() {
     <section id="how-it-works" className="py-16 md:py-20 bg-[#EBF5FF]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">How WattWise works</h2>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">How GridWise works</h2>
           <p className="mt-3 text-slate-500">From copper wire to dashboard in under a second.</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6 md:gap-8">
@@ -421,7 +421,7 @@ function CtaBanner() {
           Ready to take control of your energy?
         </h2>
         <p className="mt-4 text-blue-200 text-lg">
-          Join the households and municipalities across Gauteng already using WattWise.
+          Join the households and municipalities across Gauteng already using GridWise.
         </p>
         <Link
           to="/login"
@@ -443,7 +443,7 @@ function Footer() {
           <div className="w-7 h-7 rounded-lg bg-gov-blue grid place-items-center">
             <Zap className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-white font-bold tracking-tight">WattWise</span>
+          <span className="text-white font-bold tracking-tight">GridWise</span>
         </div>
         <p className="text-xs text-center">
           Developed for the Gauteng Province Hackathon 2025 · Built with GSM, React &amp; love for
@@ -454,7 +454,7 @@ function Footer() {
             Sign in
           </a>
           <span>·</span>
-          <span>© 2025 WattWise</span>
+          <span>© 2025 GridWise</span>
         </div>
       </div>
     </footer>
