@@ -36,7 +36,7 @@ const BACKEND_TOKEN_URL = apiUrl("/api/directline/token");
 const SECRET = (import.meta.env.VITE_DIRECTLINE_SECRET ?? "").trim();
 const DOMAIN = (import.meta.env.VITE_DIRECTLINE_DOMAIN ?? "").trim() || DEFAULT_DOMAIN;
 
-export const isDirectLineConfigured = Boolean(TOKEN_URL || BACKEND_TOKEN_URL || SECRET);
+export const isDirectLineConfigured = Boolean(TOKEN_URL || SECRET);
 
 export type AgentStatus = "unconfigured" | "connecting" | "online" | "error";
 
@@ -130,9 +130,9 @@ async function startConversation(signal: AbortSignal): Promise<StartResponse> {
   if (resolvedTokenUrl) {
     const res = await fetch(resolvedTokenUrl, { method: "GET", signal });
     if (!res.ok) throw new Error(`Token endpoint returned ${res.status}`);
-    const data = (await res.json()) as { token?: string };
+    const data = (await res.json()) as { token?: string; conversationId?: string };
     if (!data.token) throw new Error("Token endpoint did not return a token");
-    return openConversation(data.token, signal);
+    return openConversation(data.token, signal, data.conversationId);
   }
 
   // Path 2: use the raw secret to open a conversation.
