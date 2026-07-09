@@ -48,10 +48,10 @@ export function faceCenterOffset(landmarks: readonly Landmark[]): number | null 
 export type Gesture = "center" | "left" | "right";
 export const GESTURES: readonly Gesture[] = ["center", "left", "right"];
 
-export const CENTER_YAW_MAX = 0.3; // must be roughly forward-facing to count as centred
-export const CENTER_OFFSET_MAX = 0.2; // must be near the middle of the frame
-export const TURN_MIN = 0.5; // yaw magnitude that counts as a completed turn
-export const CENTER_HOLD_MS = 900; // hold centred this long to pass the first step
+export const CENTER_YAW_MAX = 0.45; // must be roughly forward-facing to count as centred
+export const CENTER_OFFSET_MAX = 0.32; // must be near the middle of the frame
+export const TURN_MIN = 0.32; // yaw magnitude that counts as a completed turn
+export const CENTER_HOLD_MS = 500; // hold centred this long to pass the first step
 
 export const GESTURE_LABEL: Record<Gesture | "done", string> = {
   center: "Center your face and hold still",

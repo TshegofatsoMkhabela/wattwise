@@ -28,8 +28,9 @@ const STROKE = 7;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const CAMERA = SIZE - 30;
 
-// Temporary on-screen diagnostics for the face detection. Flip off once tuned.
-const DEBUG = true;
+// Keep diagnostics available during development without showing them in the demo UI.
+const DEBUG = false;
+const NO_FACE_FALLBACK_MS = 6000;
 
 /**
  * Municipality face-login step: a "center your face → turn left → turn right" liveness
@@ -54,6 +55,7 @@ export function FaceLivenessGate({
   const [faceVisible, setFaceVisible] = useState(false);
   const [centered, setCentered] = useState(false);
   const [struggling, setStruggling] = useState(false);
+  const [demoFallbackVisible, setDemoFallbackVisible] = useState(false);
   const [dbg, setDbg] = useState({
     face: false,
     yaw: 0,
@@ -76,6 +78,7 @@ export function FaceLivenessGate({
   const progressRef = useRef(0); // ratcheted: only ever grows, for a smooth ring
   const lastVideoTimeRef = useRef(-1);
   const doneRef = useRef(false);
+  const faceSeenRef = useRef(false);
 
   const cleanup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -94,8 +97,19 @@ export function FaceLivenessGate({
     onSkip();
   }, [cleanup, onSkip]);
 
+  const handleDemoContinue = useCallback(() => {
+    doneRef.current = true;
+    cleanup();
+    setDemoFallbackVisible(false);
+    setGesture("done");
+    setProgress(1);
+    setPhase("success");
+    window.setTimeout(onSuccess, 450);
+  }, [cleanup, onSuccess]);
+
   useEffect(() => {
     let cancelled = false;
+    let noFaceTimer: number | null = null;
 
     const drawOverlay = (landmarks: readonly Landmark[]) => {
       const canvas = canvasRef.current;
@@ -171,6 +185,8 @@ export function FaceLivenessGate({
         }
 
         if (landmarks && landmarks.length) {
+          faceSeenRef.current = true;
+          setDemoFallbackVisible(false);
           setFaceVisible(true);
           drawOverlay(landmarks);
 
@@ -251,8 +267,22 @@ export function FaceLivenessGate({
       }
       streamRef.current = stream;
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(() => {});
+        const video = videoRef.current;
+        video.srcObject = stream;
+        const playPromise = video.play().catch(() => {});
+        await new Promise<void>((resolve) => {
+          if (video.readyState >= 2 && video.videoWidth > 0) {
+            resolve();
+            return;
+          }
+          const done = () => {
+            window.clearTimeout(timeout);
+            resolve();
+          };
+          const timeout = window.setTimeout(resolve, 1200);
+          video.addEventListener("loadedmetadata", done, { once: true });
+        });
+        await playPromise;
       }
 
       // 2) Face model (shared singleton; may already be prewarmed).
@@ -273,6 +303,11 @@ export function FaceLivenessGate({
 
       lastTsRef.current = null;
       setPhase("ready");
+      noFaceTimer = window.setTimeout(() => {
+        if (!doneRef.current && !cancelled && !faceSeenRef.current) {
+          setDemoFallbackVisible(true);
+        }
+      }, NO_FACE_FALLBACK_MS);
       rafRef.current = requestAnimationFrame(loop);
     };
 
@@ -286,6 +321,7 @@ export function FaceLivenessGate({
     return () => {
       cancelled = true;
       window.clearTimeout(struggleTimer);
+      if (noFaceTimer != null) window.clearTimeout(noFaceTimer);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -461,6 +497,16 @@ export function FaceLivenessGate({
           <p className="mt-1 text-[11px] text-slate-400 text-center">
             Demo liveness check — not used for identification.
           </p>
+
+          {demoFallbackVisible && phase === "ready" && (
+            <button
+              type="button"
+              onClick={handleDemoContinue}
+              className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#005EB8] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#003F8A] transition-colors"
+            >
+              <Check className="w-3.5 h-3.5" /> Continue demo verification
+            </button>
+          )}
 
           {DEBUG && phase !== "error" && (
             <div className="mt-3 w-full rounded-md bg-slate-900 text-slate-100 text-[10px] font-mono px-2 py-1.5 leading-relaxed">
