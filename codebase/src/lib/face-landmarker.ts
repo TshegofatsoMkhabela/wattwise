@@ -58,24 +58,25 @@ async function createLandmarker(): Promise<FaceLandmarkerType> {
 
   const fileset = await Promise.race([filesetPromise, timeoutPromise]);
 
-  const build = (delegate: "GPU" | "CPU") =>
+  const build = (delegate: "GPU" | "CPU", runningMode: "VIDEO" | "IMAGE") =>
     FaceLandmarker.createFromOptions(fileset, {
       baseOptions: { modelAssetPath: MODEL_URL, delegate },
-      runningMode: "VIDEO",
+      runningMode,
       numFaces: 1,
       outputFaceBlendshapes: false,
       outputFacialTransformationMatrixes: false,
     });
 
-  // Prefer the GPU delegate; fall back to CPU on machines without it or where WebGL fails.
+  // Prefer the GPU delegate with VIDEO mode; fall back to CPU with IMAGE mode.
+  // MediaPipe's VIDEO mode requires WebGL internally to process video textures.
   try {
     if (!hasWebGL2()) throw new Error("WebGL2 not available");
-    const lm = await build("GPU");
+    const lm = await build("GPU", "VIDEO");
     loadedDelegate = "GPU";
     return lm;
   } catch (err) {
-    console.warn("GPU delegate failed, falling back to CPU", err);
-    const lm = await build("CPU");
+    console.warn("GPU/VIDEO delegate failed, falling back to CPU/IMAGE", err);
+    const lm = await build("CPU", "IMAGE");
     loadedDelegate = "CPU";
     return lm;
   }

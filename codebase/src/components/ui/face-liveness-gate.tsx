@@ -153,13 +153,18 @@ export function FaceLivenessGate({
       if (video.currentTime !== lastVideoTimeRef.current) {
         lastVideoTimeRef.current = video.currentTime;
 
-        // A single thrown frame must not kill the loop — catch, log, keep going.
         let landmarks: readonly Landmark[] | undefined;
         try {
-          landmarks = lm.detectForVideo(video, now).faceLandmarks?.[0];
+          if (getFaceDelegate() === "CPU") {
+            // CPU fallback uses IMAGE mode (no WebGL textures required)
+            landmarks = lm.detect(video).faceLandmarks?.[0];
+          } else {
+            // GPU uses VIDEO mode
+            landmarks = lm.detectForVideo(video, now).faceLandmarks?.[0];
+          }
         } catch (err) {
           const msg = (err as Error)?.message ?? String(err);
-          console.error("[FaceGate] detectForVideo failed:", err);
+          console.error("[FaceGate] detect failed:", err);
           if (DEBUG) setDbg((d) => ({ ...d, face: false, err: msg }));
           rafRef.current = requestAnimationFrame(loop);
           return;
