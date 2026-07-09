@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_DIRECTLINE_TOKEN_URL?: string;
   readonly VITE_DIRECTLINE_SECRET?: string;
   readonly VITE_DIRECTLINE_DOMAIN?: string;
+  readonly VITE_AGENT_MODE?: "mock" | "live";
 }
 
 interface ImportMeta {

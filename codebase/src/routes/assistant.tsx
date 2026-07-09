@@ -2,7 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PromptInput } from "@/components/ui/ai-chat-input";
-import { useCopilotAgent, waitLabel, type AgentStatus, type ChatMessage } from "@/lib/directline";
+import {
+  isMockAgentMode,
+  useCopilotAgent,
+  waitLabel,
+  type AgentStatus,
+  type ChatMessage,
+} from "@/lib/directline";
 import {
   Sparkles,
   Zap,
@@ -98,7 +104,9 @@ function AssistantChat() {
           </div>
           <div className="min-w-0">
             <div className="text-sm font-bold text-slate-900 truncate">WattWise Assistant</div>
-            <div className="text-[11px] text-slate-400 truncate">Powered by Copilot Studio</div>
+            <div className="text-[11px] text-slate-400 truncate">
+              {isMockAgentMode ? "Demo orchestrator agents" : "Powered by Copilot Studio"}
+            </div>
           </div>
         </div>
         <StatusPill status={status} />

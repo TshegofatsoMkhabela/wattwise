@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { addReport, type SavedReport } from "../store/reports";
 import { apiUrl } from "./api";
 import { getAgentContext, formatAgentMessageContext } from "./user-context";
+import { runMockAgent, runMockTrigger } from "./mock-agents";
 
 /**
  * Minimal, dependency-free Direct Line 3.0 client for talking to a
@@ -35,8 +36,10 @@ const TOKEN_URL = (import.meta.env.VITE_DIRECTLINE_TOKEN_URL ?? "").trim();
 const BACKEND_TOKEN_URL = apiUrl("/api/directline/token");
 const SECRET = (import.meta.env.VITE_DIRECTLINE_SECRET ?? "").trim();
 const DOMAIN = (import.meta.env.VITE_DIRECTLINE_DOMAIN ?? "").trim() || DEFAULT_DOMAIN;
+const AGENT_MODE = (import.meta.env.VITE_AGENT_MODE ?? "mock").trim().toLowerCase();
 
-export const isDirectLineConfigured = Boolean(TOKEN_URL || SECRET);
+export const isMockAgentMode = AGENT_MODE !== "live";
+export const isDirectLineConfigured = Boolean(TOKEN_URL || BACKEND_TOKEN_URL || SECRET);
 
 export type AgentStatus = "unconfigured" | "connecting" | "online" | "error";
 
@@ -130,9 +133,9 @@ async function startConversation(signal: AbortSignal): Promise<StartResponse> {
   if (resolvedTokenUrl) {
     const res = await fetch(resolvedTokenUrl, { method: "GET", signal });
     if (!res.ok) throw new Error(`Token endpoint returned ${res.status}`);
-    const data = (await res.json()) as { token?: string; conversationId?: string };
+    const data = (await res.json()) as { token?: string };
     if (!data.token) throw new Error("Token endpoint did not return a token");
-    return openConversation(data.token, signal, data.conversationId);
+    return openConversation(data.token, signal);
   }
 
   // Path 2: use the raw secret to open a conversation.
@@ -262,6 +265,7 @@ export async function sendAgentTrigger(
   value?: unknown,
   attachments?: TriggerAttachment[],
 ): Promise<TriggerResult> {
+  if (isMockAgentMode) return runMockTrigger(text, value);
   if (!isDirectLineConfigured) return { ok: false, reason: "unconfigured" };
   const conv = await getTriggerChannel();
   if (!conv) return { ok: false, reason: "no-conversation" };
@@ -328,7 +332,7 @@ export async function sendReportTrigger(
  */
 export function useCopilotAgent() {
   const [status, setStatus] = useState<AgentStatus>(
-    isDirectLineConfigured ? "connecting" : "unconfigured",
+    isMockAgentMode ? "online" : isDirectLineConfigured ? "connecting" : "unconfigured",
   );
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [awaitingReply, setAwaitingReply] = useState(false);
@@ -354,6 +358,11 @@ export function useCopilotAgent() {
   }, []);
 
   useEffect(() => {
+    if (isMockAgentMode) {
+      setStatus("online");
+      setError(null);
+      return;
+    }
     if (!isDirectLineConfigured) return;
 
     const controller = new AbortController();
@@ -446,18 +455,46 @@ export function useCopilotAgent() {
         { id: makeId(), role: "user", text: trimmed, timestamp: Date.now() },
       ]);
 
+      if (isMockAgentMode) {
+        lastUserTextRef.current = trimmed;
+        setError(null);
+        setTimedOut(false);
+        setAwaitingReply(true);
+        setAwaitingSince(Date.now());
+        clearReplyTimeout();
+
+        try {
+          const reply = await runMockAgent(trimmed, getAgentContext());
+          setMessages((prev) => [
+            ...prev,
+            { id: makeId(), role: "bot", text: reply, timestamp: Date.now() },
+          ]);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Mock agent failed.");
+        } finally {
+          setAwaitingReply(false);
+          setAwaitingSince(null);
+        }
+        return;
+      }
+
       const conv = conversationRef.current;
       if (!isDirectLineConfigured || !conv) {
         // Not connected — surface a helpful bot-side notice instead of failing silently.
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: makeId(),
-            role: "bot",
-            text: "The assistant isn't connected yet. Add your Copilot Studio Direct Line details to .env.local to enable live replies.",
-            timestamp: Date.now(),
-          },
-        ]);
+        try {
+          setAwaitingReply(true);
+          setAwaitingSince(Date.now());
+          const reply = await runMockAgent(trimmed, getAgentContext());
+          setMessages((prev) => [
+            ...prev,
+            { id: makeId(), role: "bot", text: reply, timestamp: Date.now() },
+          ]);
+          setStatus("online");
+          setError(null);
+        } finally {
+          setAwaitingReply(false);
+          setAwaitingSince(null);
+        }
         return;
       }
 
